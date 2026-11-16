@@ -54,7 +54,7 @@ python scripts/plot_results.py
 python scripts/build_diagrams.py
 ```
 
-The plotting script validates the data first. It writes both PNG and SVG versions of four figures. The diagram script writes the cover and experiment diagram. Fonts are converted to paths in SVG exports for consistent appearance.
+The plotting script validates the data first and writes five result figures. The diagram script writes the method schematic and extracts original rollout frames using FFmpeg. All figures are exported as PNG, SVG, and PDF with a shared academic style. SVG fonts are converted to paths; PDF fonts are embedded. FFmpeg is required only for extracting rollout frames.
 
 The present figures are authored for this snapshot, including the 800-update held-out result. When publishing further completed checkpoints, update the figures and accompanying narrative together.
 

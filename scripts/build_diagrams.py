@@ -1,73 +1,78 @@
-"""Draw repository cover and experiment diagram using the shared figure palette."""
-from pathlib import Path
-import os
-ROOT = Path(__file__).resolve().parents[1]
-os.environ.setdefault("MPLCONFIGDIR", str(ROOT / ".cache/matplotlib"))
-import matplotlib
-matplotlib.use("Agg")
+"""Render an experimental-design schematic and original rollout frame sequences."""
+import io
+import json
+import subprocess
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
-from plot_results import BG, INK, MUTED, GRID, TEAL, BLUE, style, save
+from matplotlib.patches import Rectangle, FancyArrowPatch
+from plot_results import ROOT, INK, BLUE, GRAY, style, save
+from analyze_results import validate_repository
 
-def cover():
-    fig = plt.figure(figsize=(12, 3.45), facecolor=BG)
-    ax = fig.add_axes([0,0,1,1])
-    ax.set_xlim(0,1200); ax.set_ylim(0,345); ax.axis("off")
-    ax.text(58,188,"π0.5",fontsize=84,weight="bold",color=TEAL)
-    ax.text(61,133,"on LIBERO",fontsize=30,weight="bold",color=INK)
-    ax.plot([431,431],[130,277],color=GRID,lw=1)
-    ax.text(473,252,"From pretrained policy",fontsize=25,color=INK,weight="bold")
-    ax.text(473,205,"to closed-loop control.",fontsize=25,color=INK,weight="bold")
-    ax.text(474,147,"A single-GPU fine-tuning study",fontsize=16,color=MUTED)
-    ax.plot([61,1140],[92,92],color=GRID,lw=1)
-    ax.text(61,42,"All-linear LoRA",fontsize=12,color=INK)
-    ax.text(431,42,"One RTX A5000",fontsize=12,color=INK)
-    ax.text(849,42,"Six saved checkpoints",fontsize=12,color=INK)
-    save(fig,"cover")
 
-def box(ax,x,y,w,h,title,lines,accent=INK):
-    patch=FancyBboxPatch((x,y),w,h,boxstyle="round,pad=0,rounding_size=5",
-                        linewidth=1,edgecolor=GRID,facecolor="white")
-    ax.add_patch(patch)
-    ax.text(x+22,y+h-35,title,fontsize=14,weight="bold",color=accent)
-    for i,line in enumerate(lines):
-        ax.text(x+22,y+h-67-i*25,line,fontsize=11,color=MUTED)
+def box(ax, x, y, w, h, lines, facecolor="white"):
+    ax.add_patch(Rectangle((x, y), w, h, lw=.65, edgecolor=INK, facecolor=facecolor))
+    ax.text(x+w/2, y+h/2, "\n".join(lines), ha="center", va="center", fontsize=9, linespacing=1.4)
 
-def arrow(ax,x,y,to_x,to_y,color=MUTED):
-    ax.add_patch(FancyArrowPatch((x,y),(to_x,to_y),arrowstyle="-|>",mutation_scale=13,
-                                 linewidth=1.2,color=color))
 
-def pipeline():
-    fig=plt.figure(figsize=(12,6.6),facecolor=BG)
-    ax=fig.add_axes([0,0,1,1]);ax.set_xlim(0,1200);ax.set_ylim(0,660);ax.axis("off")
-    ax.text(60,606,"One training run. Two evaluation splits.",fontsize=25,weight="bold")
-    ax.text(60,568,"Demonstrations train the policy. Simulator initial states measure task success.",
-            fontsize=12,color=MUTED)
-    box(ax,60,330,325,188,"Demonstrations",["40 tasks · 1,693 complete episodes",
-          "1,608 train / 85 offline validation","Normalization fitted on training only"],TEAL)
-    box(ax,440,330,325,188,"All-linear LoRA",["Official pi05_base + all-linear LoRA",
-          "Rank 64 / alpha 32 · seed 0","Microbatch 8 × accumulation 32",
-          "2,000 optimizer updates"],TEAL)
-    box(ax,820,330,320,188,"Six complete checkpoints",["800 / 1,000 / 1,250",
-          "1,500 / 1,750 / 2,000","Same training trajectory"],TEAL)
-    arrow(ax,387,424,437,424); arrow(ax,767,424,817,424)
-    ax.plot([60,1140],[288,288],color=GRID,lw=1)
-    box(ax,60,66,325,174,"Simulator initial states",["10 tasks × 50 fixed states",
-          "100 development + 400 held-out","Disjoint states within each task"],BLUE)
-    box(ax,440,66,325,174,"Closed-loop evaluation",["Each checkpoint uses both splits",
-          "Same initial states across checkpoints",
-          "Observe → infer → act → observe",
-          "Native task-success predicate"],BLUE)
-    box(ax,820,66,320,174,"Compare outcomes",["Success per task and checkpoint",
-          "Pair by task + initial-state ID",
-          "Report successes and failures"],BLUE)
-    arrow(ax,387,151,437,151);arrow(ax,767,151,817,151)
-    ax.plot([980,980,600],[328,270,270],color=TEAL,lw=1.2)
-    arrow(ax,600,270,600,242,TEAL)
-    ax.text(1140,18,"Frozen protocol · one rollout per state and checkpoint",fontsize=10,
-            color=MUTED,ha="right")
-    save(fig,"experiment-design")
+def arrow(ax, start, end):
+    ax.add_patch(FancyArrowPatch(start, end, arrowstyle="-|>", mutation_scale=9, lw=.7, color=INK))
 
-if __name__=="__main__":
-    style();cover();pipeline()
-    print("Built repository cover and experiment diagram.")
+
+def experiment():
+    fig, ax = plt.subplots(figsize=(8.2, 3.35))
+    fig.subplots_adjust(left=.01, right=.99, bottom=.03, top=.98)
+    ax.set(xlim=(0, 10), ylim=(0, 4)); ax.axis("off")
+    ax.text(.12, 3.78, "(a) Fine-tuning", fontsize=11)
+    box(ax, .12, 2.55, 2.35, .93, ["LIBERO demonstrations", "1,608 training / 85 validation"])
+    box(ax, 3.1, 2.55, 2.8, .93, [r"$\pi_{0.5}$ base (frozen) + LoRA", "rank 64; alpha 32"], "#F2F4F6")
+    box(ax, 6.56, 2.55, 3.22, .93, ["Checkpoints (optimizer updates)", "800, 1,000, 1,250, 1,500, 1,750, 2,000"])
+    arrow(ax, (2.47, 3.02), (3.1, 3.02))
+    arrow(ax, (5.9, 3.02), (6.56, 3.02))
+    ax.text(4.5, 2.29, "RTX A5000; effective batch 256; seed 0", ha="center", fontsize=9, color=GRAY)
+
+    ax.text(.12, 1.83, "(b) Closed-loop evaluation", fontsize=11)
+    box(ax, .12, .32, 2.35, 1.14, ["LIBERO-Spatial", "10 tasks × 50 initial states", "100 development / 400 held-out"])
+    box(ax, 3.1, .32, 2.8, 1.14, ["Observation → policy → action", "Replan after 5 actions", "Task-success predicate"])
+    box(ax, 6.56, .32, 3.22, 1.14, ["Paired checkpoint comparison", "Same task / initial-state pairs", "One scored rollout per pair"])
+    arrow(ax, (2.47, .89), (3.1, .89))
+    arrow(ax, (5.9, .89), (6.56, .89))
+    ax.plot([8.17, 8.17, 4.5], [2.55, 1.95, 1.95], color=INK, lw=.7)
+    arrow(ax, (4.5, 1.95), (4.5, 1.46))
+    save(fig, "experiment-design")
+
+
+def selected_frame(path, index):
+    data = subprocess.check_output([
+        "ffmpeg", "-hide_banner", "-loglevel", "error", "-i", str(path),
+        "-vf", f"select=eq(n\\,{index}),crop=iw/2:ih:0:0",
+        "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "-",
+    ])
+    return plt.imread(io.BytesIO(data), format="png")
+
+
+def rollouts():
+    media = json.loads((ROOT / "assets/demos/manifest.json").read_text())
+    clips = [c for c in media["clips"] if c["task_id"] == 0]
+    fig, axes = plt.subplots(2, 3, figsize=(6.6, 4.65))
+    fig.subplots_adjust(left=.01, right=.99, top=.90, bottom=.015, hspace=.38, wspace=.045)
+    for row, clip in enumerate(clips):
+        steps = clip["policy_steps"]
+        frame_indices = [0, (steps-1)//2, steps-1]
+        label = "(a) Success" if clip["success"] else "(b) Failure at the step limit"
+        for col, index in enumerate(frame_indices):
+            ax = axes[row, col]
+            ax.imshow(selected_frame(ROOT / clip["mp4"], index))
+            ax.set_title(f"Step {index+1}", fontsize=9, pad=3)
+            ax.set_xticks([]); ax.set_yticks([])
+            for spine in ax.spines.values():
+                spine.set_linewidth(.4); spine.set_edgecolor("#888888")
+        y = axes[row, 0].get_position().y1 + .065
+        fig.text(.013, y, f"{label} (initial state {clip['initial_state_id']:02d})", fontsize=10)
+    save(fig, "qualitative-rollouts")
+
+
+if __name__ == "__main__":
+    validate_repository()
+    style()
+    experiment()
+    rollouts()
+    print("Built method schematic and rollout sequences (PNG, SVG, PDF).")

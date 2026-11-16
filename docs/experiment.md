@@ -10,6 +10,8 @@ The unit of training progress is an **optimizer update**. The unit of evaluation
 
 ![Experiment design](../assets/experiment-design.png)
 
+**Figure 1. Experimental design.** (a) Fine-tuning and checkpoint retention. (b) Paired closed-loop evaluation on disjoint development and held-out initial-state partitions. [PDF](../assets/experiment-design.pdf)
+
 ## Data and separation
 
 | Use | Contents | Purpose |

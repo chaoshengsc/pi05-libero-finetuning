@@ -1,60 +1,51 @@
-# Reading the results
+# Supplementary results
 
-[Project overview](../README.md) · [Protocol](experiment.md) · [Data](../results/README.md)
+[Overview](../README.md) · [Protocol](experiment.md) · [Data](../results/README.md)
 
-## What is already measured
+## Per-task development results
 
-- Training reached 2,000 optimizer updates with six retained checkpoints.
-- All six development evaluations are complete, using 100 shared initial states each.
-- The 800-update checkpoint completed 400 held-out episodes with 346 successes.
-- The official pretrained starting policy scored 0/100 under this project's development protocol.
+Development success increases overall from 89/100 at 800 updates to 97/100 at 2,000, with a decrease at 1,500. Figure S1 reports all task-level counts.
 
-The baseline is a local measurement with this data normalization, input pipeline, and task protocol. It is not a universal claim about `pi05_base` or an official benchmark score.
+![Development success counts by task and checkpoint](../assets/task-checkpoint-matrix.png)
 
-## The trajectory is not monotonic
+**Figure S1. Per-task development evaluation.** Each cell reports successes out of the same ten development initial states for that task. Color encodes the count on a scale from 0 to 10. All tasks require placing the black bowl on the plate; labels describe its starting location. [PDF](../assets/task-checkpoint-matrix.pdf) · [SVG](../assets/task-checkpoint-matrix.svg)
 
-Development success increases overall from 89/100 at 800 updates to 97/100 at 2,000, with a decrease at 1,500. The task matrix shows which tasks contribute to those changes.
+These observations do not identify the cause of a task-level regression. The pretrained baseline, 0/100, is a measurement under this project's input, normalization and evaluation protocol rather than a universal claim about `pi05_base`.
 
-![Per-task checkpoint matrix](../assets/task-checkpoint-matrix.png)
+## Paired checkpoint comparison
 
-These checkpoint observations alone do not identify why a task regressed. A causal claim would require a controlled intervention or additional experimental evidence.
+![Paired development outcomes for checkpoints 1750 and 2000](../assets/paired-development.png)
 
-## A one-point gain contains seven disagreements
+**Figure S2. Paired development outcomes.** Rows correspond to checkpoint 1,750 and columns to checkpoint 2,000. Each entry counts identical task–initial-state pairs (n = 100). [PDF](../assets/paired-development.pdf) · [SVG](../assets/paired-development.svg)
 
-On development, the paired 1,750 / 2,000 outcomes are:
-
-| 1,750 result | 2,000 success | 2,000 failure |
+| Checkpoint 1,750 | 2,000 succeeds | 2,000 fails |
 |:--|--:|--:|
 | Success | 93 | 3 |
 | Failure | 4 | 0 |
 
-Four initial states improve and three regress. The net difference is +1 percentage point for 2,000. This is a descriptive comparison on a development set inspected across checkpoints; it does not establish that 2,000 generalizes better.
-
-Reproduce the exact counts:
+Four initial states improve and three regress, yielding a net difference of +1 percentage point for 2,000. This descriptive comparison uses development data inspected across checkpoints and does not establish a held-out advantage.
 
 ```sh
 python scripts/analyze_results.py --pair 1750 2000 --split development
 ```
 
-## The first held-out result
+## Held-out results at checkpoint 800
 
-At 800 updates, 346 of 400 episodes succeed. Each task contributes 40 outcomes. Task 02 reaches 40/40, while task 09 reaches 27/40. The overall 86.5% does not mean that each task is equally reliable.
+![Held-out task success at checkpoint 800](../assets/held-out-tasks.png)
 
-![Held-out performance by task](../assets/held-out-tasks.png)
+**Figure S3. Held-out evaluation at 800 updates.** Each task contributes 40 episodes. Bar labels give success counts; the dashed line indicates 346/400 = 86.5% overall success. [PDF](../assets/held-out-tasks.pdf) · [SVG](../assets/held-out-tasks.svg)
 
-The selected videos illustrate both a success and a failure for task 00. Their labels come from the recorded simulator predicate. We do not assign a failure cause from the video alone.
+Task-level outcomes range from 27/40 to 40/40. Selected videos illustrate a success and a failure for task 00; their labels come from the recorded native simulator predicate. A failure cause is not assigned from these examples alone.
 
-## What remains open
+## Pending analyses and limitations
 
-| Question | Evidence needed |
+| Analysis | Required evidence |
 |:--|:--|
-| Which checkpoint has the highest held-out score? | All six complete 400-episode groups |
-| How do 1,750 and 2,000 differ on the same held-out states? | Paired outcomes, task breakdown and uncertainty estimate |
-| How stable are these results across training randomness? | Additional training seeds |
-| Do improvements transfer to new task families or a real robot? | Separate evaluation protocols and data |
+| Six-checkpoint held-out ranking | Six complete groups of 400 episodes |
+| Held-out 1,750 / 2,000 comparison | Paired outcomes, task breakdown and uncertainty estimate |
+| Variation across training seeds | Additional independent training runs |
+| Unseen-task or real-robot performance | Separate evaluation protocols |
 
-This release does not report cross-seed uncertainty, performance on unseen tasks, or real-robot validation. The six-checkpoint ranking will describe the fixed held-out sample; choosing the best score introduces selection uncertainty.
+This release does not report cross-seed uncertainty, unseen-task performance, or real-robot validation. A future best-of-six ranking will describe the fixed held-out sample and is subject to selection uncertainty.
 
-## Snapshot and evidence
-
-The public snapshot was exported at **2026-11-16 13:56 CST**. Partial groups are excluded. The [episode CSV](../results/episodes.csv) contains 1,100 rows: 100 pretrained-baseline episodes, 600 trained development episodes, and 400 held-out episodes. [Provenance](../results/provenance.json) records source digests and the runtime-change note.
+The snapshot was exported at **2026-11-16 13:56 CST**. The [episode CSV](../results/episodes.csv) contains 100 pretrained-baseline development episodes, 600 trained development episodes, and 400 held-out episodes. [Provenance](../results/provenance.json) records source digests and the runtime-change note.
