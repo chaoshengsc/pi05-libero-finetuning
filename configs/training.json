@@ -1,0 +1,80 @@
+{
+  "accumulation": 32,
+  "action_dim": 32,
+  "action_horizon": 10,
+  "adapter_elements": 151250944,
+  "alpha": 32,
+  "control_hz": 20,
+  "decay_start": 40000,
+  "denoise_steps": 10,
+  "discrete_state_input": false,
+  "dropout": 0,
+  "effective_batch": 256,
+  "ema_decay": null,
+  "execute_actions": 5,
+  "image_augmentation": false,
+  "init_a_std": 0.01,
+  "init_b": 0,
+  "logical_matrices": 456,
+  "max_actions": 220,
+  "max_token_len": 200,
+  "microbatch": 8,
+  "num_workers": 0,
+  "optimizer": {
+    "b1": 0.9,
+    "b2": 0.95,
+    "clip_gradient_norm": 1,
+    "eps": 1e-08,
+    "weight_decay": 1e-10
+  },
+  "peak_lr": 0.0005,
+  "rank": 64,
+  "real_action_dim": 7,
+  "seed": 0,
+  "settling_steps": 10,
+  "structural_zero_elements": 4063232,
+  "versions": {
+    "flax": "0.10.2",
+    "jax": "0.5.3",
+    "jaxlib": "0.5.3",
+    "numpy": "1.26.4",
+    "optax": "0.2.4",
+    "orbax-checkpoint": "0.11.13"
+  },
+  "warmup_updates": 1000,
+  "actual_optimizer_updates": 2000,
+  "checkpoint_steps": [
+    800,
+    1000,
+    1250,
+    1500,
+    1750,
+    2000
+  ],
+  "schedule_total_updates": 50000,
+  "upstream": {
+    "openpi_commit": "215abfb217dbac7d5f1273282331b9b1866c0479",
+    "libero_commit": "8f1084e3132a39270c3a13ebe37270a43ece2a01",
+    "dataset_revision": "9dfa69510ea9e1613fc54112bc706444b686a231"
+  },
+  "normalization_sha256": "76f324c3175ecc4cefc2f51587f22b1d163403597ff1a69692d83e8601c70a50",
+  "demonstration_split_sha256": "161b0e9cbcda1677e3daa4fdc0db7a96a5d6a4082dbc0f7d379274b2279d0e79",
+  "execution_profile": {
+    "environment": {
+      "JAX_DEFAULT_MATMUL_PRECISION": null,
+      "JAX_ENABLE_X64": null,
+      "NVIDIA_TF32_OVERRIDE": null,
+      "XLA_FLAGS": "--xla_gpu_dot_merger_threshold_mb=0 --xla_gpu_override_gemm_autotuner=\"block_m:32 block_n:16 block_k:32 split_k:1 num_stages:4 num_warps:4 num_ctas:1\""
+    },
+    "id": "fixed_gemm_32_16_32_split1",
+    "triton_gemm": {
+      "block_k": 32,
+      "block_m": 32,
+      "block_n": 16,
+      "num_ctas": 1,
+      "num_stages": 4,
+      "num_warps": 4,
+      "split_k": 1
+    }
+  }
+}

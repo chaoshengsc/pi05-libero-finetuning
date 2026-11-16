@@ -1,0 +1,47 @@
+{
+  "selection": "First valid success and first valid failure in ascending initial-state order for task 0, plus the first success for task 9. Qualitative illustrations only.",
+  "checkpoint": 800,
+  "split": "held-out",
+  "playback": "GIF previews sample at 10 frames/second at approximately original duration. MP4 files are unmodified evaluator recordings.",
+  "clips": [
+    {
+      "checkpoint": 800,
+      "split": "held-out",
+      "task_id": 0,
+      "initial_state_id": 2,
+      "success": true,
+      "policy_steps": 78,
+      "video_filename": "attempt_1.mp4",
+      "video_sha256": "e48d39fbd7277a7cfff671cfdb3bc8c243a6ed12e27d4293b3fff455fc5d1fb3",
+      "video_bytes": 403431,
+      "mp4": "assets/demos/step800-task00-init02.mp4",
+      "gif": "assets/demos/step800-task00-init02.gif"
+    },
+    {
+      "checkpoint": 800,
+      "split": "held-out",
+      "task_id": 0,
+      "initial_state_id": 16,
+      "success": false,
+      "policy_steps": 220,
+      "video_filename": "attempt_1.mp4",
+      "video_sha256": "c9c1e6772d28c7b5fdfcc9a3a87b83ab0697ab3b0e32427ef7ad5a952ba99d53",
+      "video_bytes": 1154868,
+      "mp4": "assets/demos/step800-task00-init16.mp4",
+      "gif": "assets/demos/step800-task00-init16.gif"
+    },
+    {
+      "checkpoint": 800,
+      "split": "held-out",
+      "task_id": 9,
+      "initial_state_id": 0,
+      "success": true,
+      "policy_steps": 131,
+      "video_filename": "attempt_1.mp4",
+      "video_sha256": "ee9a031e2c8cb9704161bbbe2f8a9dc5090b81433f9a7ff2223b267b6fa1f8ff",
+      "video_bytes": 612892,
+      "mp4": "assets/demos/step800-task09-init00.mp4",
+      "gif": "assets/demos/step800-task09-init00.gif"
+    }
+  ]
+}

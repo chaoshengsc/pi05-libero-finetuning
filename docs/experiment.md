@@ -1,40 +1,100 @@
 # Experiment protocol
 
-## Training
+[Project overview](../README.md) · [Results](results.md) · [Reproduce the analysis](reproduce.md)
 
-The run starts from the official OpenPI `pi05_base` checkpoint and trains rank-64, alpha-32 LoRA adapters on the target linear layers with the base weights frozen. The run uses seed 0 on one RTX A5000, a microbatch of 8 and gradient accumulation of 32. The six saved checkpoints correspond to 800, 1,000, 1,250, 1,500, 1,750, and 2,000 optimizer updates.
+## Research question
 
-The dataset contains 1,693 demonstrations across 40 tasks. A demonstration-level split allocates 1,608 to training and 85 to offline validation. Normalization statistics are fitted on the training split.
+How much closed-loop task success can a single-GPU LoRA run obtain from the official pretrained `pi05_base` policy, and how does that behavior change along one training trajectory?
 
-| Component | Pinned upstream revision |
+The unit of training progress is an **optimizer update**. The unit of evaluation is a **closed-loop episode** from a specified task and initial state. Each checkpoint is a snapshot of the same training run.
+
+![Experiment design](../assets/experiment-design.png)
+
+## Data and separation
+
+| Use | Contents | Purpose |
+|:--|:--|:--|
+| Training | 1,608 complete demonstrations from a 40-task dataset | Optimize adapters and fit normalization statistics |
+| Offline validation | 85 complete demonstrations from the same dataset | Offline action-prediction diagnostics |
+| Development | 10 LIBERO-Spatial tasks × 10 fixed initial states | Inspect and compare the training trajectory |
+| Held-out | The same 10 tasks × 40 other fixed initial states | Evaluate the six-checkpoint comparison |
+
+The dataset contains 1,693 demonstrations in total. Training and offline validation are separated by whole demonstration; the [original demonstration split](../configs/demonstration_split.json) lists episode IDs and allocation across all 40 tasks. Evaluation splits partition each task's 50 simulator initial states. Demonstration records and simulator initial-state IDs are different objects.
+
+Initial states are partitioned by a deterministic hash-based rule, with task 0 / initial state 0 reserved for development. The complete rule and explicit state lists are in [evaluation.json](../configs/evaluation.json). Held-out states are disjoint from development. These are **held-out initial states of known tasks**, not unseen tasks or a different robot embodiment.
+
+## Recorded training configuration
+
+| Setting | Value |
+|:--|:--|
+| Starting policy | Official OpenPI `pi05_base` |
+| Adaptation | All target linear layers, LoRA rank 64 / alpha 32 |
+| Base parameters | Frozen |
+| Adapter elements | 151,250,944 across 456 logical matrices |
+| Precision | BF16 base, FP32 adapters / gradients / Adam state |
+| Hardware | One NVIDIA RTX A5000 |
+| Microbatch / accumulation | 8 × 32 = 256 examples per optimizer update |
+| Training seed | 0 |
+| Peak learning rate | 5 × 10⁻⁴ |
+| Learning-rate warmup | 1,000 updates |
+| Optimizer | AdamW, β₁ 0.9 / β₂ 0.95, ε 10⁻⁸, weight decay 10⁻¹⁰ |
+| Gradient clipping | Global norm 1.0 |
+| Image augmentation / LoRA dropout | Disabled / 0 |
+| Completed training budget | 2,000 optimizer updates |
+| Retained checkpoints | 800, 1,000, 1,250, 1,500, 1,750, 2,000 |
+
+The run retains the original learning-rate schedule: warmup to 1,000 updates, stable phase until 40,000, and decay to the original 50,000-update horizon. The actual run ends at 2,000; the schedule was not rescaled to this shorter budget. [Machine-readable settings](../configs/training.json)
+
+## Closed-loop inference
+
+Each query uses the task instruction, camera observations, and the policy's configured state input. The loop renders 256 × 256 observations, applies the recorded 180° orientation transform and 224 × 224 resize, samples an action chunk, executes part of it, then observes again.
+
+| Setting | Value |
+|:--|:--|
+| Environment seed | 0 |
+| Simulator control rate | 20 Hz |
+| Settling steps | 10 before policy control |
+| Action chunk | 10 steps |
+| Actions executed before replanning | 5 steps |
+| Policy action representation | 32 padded channels, 7 robot action dimensions |
+| Flow sampling steps | 10 |
+| Episode limit | 220 policy-controlled steps |
+| Scored repeats | 1 per initial state and checkpoint |
+
+The flow policy's sampling noise is deterministic per task, initial state, repeat, and query index, using base seed 20261104. This is the fixed sampling procedure used for all checkpoints. The experiment includes no verifier, best-of-N action selection, or inference-time search.
+
+A successful episode satisfies LIBERO's native Boolean task predicate. An unsolved episode at the 220-step limit is a policy failure. An infrastructure error may receive one exact retry on the same initial state; a still-unresolved technical episode blocks a complete score. The public data includes final valid outcomes, not all attempts.
+
+## Checkpoint comparison
+
+All six checkpoints use the same 100 development task/state pairs and the same 400 held-out pairs. The reported success rate equals both the mean of the ten task success rates and the fraction of successful episodes because each task contributes equally.
+
+The full six-checkpoint held-out comparison was fixed before those scores were used to select a winner. The final ranking is still a comparison over six candidates on one held-out sample; it is not an independent confirmation of the post-hoc top-ranked checkpoint.
+
+The primary paired inspection is 1,750 vs 2,000 updates. Its unit is `(task_id, initial_state_id)`. The planned uncertainty analysis resamples paired initial states within each task, then averages the ten task differences equally (10,000 bootstrap draws, seed 20261104). The current public script reports the observed paired counts; a confidence-interval report for the complete held-out comparison is pending.
+
+## Version pins
+
+| Component | Revision |
 |:--|:--|
 | OpenPI | [`215abfb217db`](https://github.com/Physical-Intelligence/openpi/commit/215abfb217dbac7d5f1273282331b9b1866c0479) |
 | LIBERO | [`8f1084e3132a`](https://github.com/Lifelong-Robot-Learning/LIBERO/commit/8f1084e3132a39270c3a13ebe37270a43ece2a01) |
 | Demonstrations | [`physical-intelligence/libero@9dfa69510ea9`](https://huggingface.co/datasets/physical-intelligence/libero/tree/9dfa69510ea9e1613fc54112bc706444b686a231) |
+| JAX / jaxlib | 0.5.3 |
+| Flax / Optax | 0.10.2 / 0.2.4 |
+| NumPy / Orbax Checkpoint | 1.26.4 / 0.11.13 |
 
-## Closed-loop evaluation
+Original evaluation protocol SHA-256:
+`7039fd18b555a239fc5505c50ff26468a246d61d78aef18fe77aef7e1b190e70`
 
-| Split | Task coverage | Initial states per task | Rollouts per policy |
-|:--|--:|--:|--:|
-| Development | 10 LIBERO-Spatial tasks | 10 | 100 |
-| Held-out | 10 LIBERO-Spatial tasks | 40 | 400 |
+The public configuration is a projection of the original protocol and the later six-checkpoint comparison decision. This hash identifies the original protocol bytes, not the public JSON file.
 
-Each task has 50 fixed initial states partitioned into the two disjoint splits. Within a split, every checkpoint sees the same task and initial-state pairs. The evaluator rolls out the policy in simulation and records a Boolean success from the task predicate. A valid rollout contributes one outcome, and a technical failure may be retried once on the same initial state. Because every task has equal episode counts, the success rate is both the mean across tasks and the fraction of successful episodes.
+## Runtime history
 
-The held-out protocol is fixed at six checkpoints × 400 episodes. Comparisons between checkpoints are paired by task and initial state. Development results guide inspection, while the final ranking uses the complete held-out run.
+The 800-update held-out run contains 352 episodes completed before a workstation restart and 48 completed afterward with an updated Linux kernel and NVIDIA driver. Existing valid outcomes were preserved. The checkpoint, task/state partition and evaluation protocol were unchanged.
 
-Evaluation protocol SHA-256: `7039fd18b555a239fc5505c50ff26468a246d61d78aef18fe77aef7e1b190e70`.
+Before the restart, the environment used Linux 6.11.0-26; afterward it used Linux 7.0.0-43 and NVIDIA driver 580.178.04. This runtime change is a reproducibility limitation. A fixed initial state and seed do not establish bitwise equivalence across different numerical runtimes.
 
-## First held-out result
+## What is published
 
-The 800-update checkpoint completed 400 valid episodes with 346 successes. A workstation restart separated the first 352 episodes from the final 48, which ran with the updated Linux kernel and NVIDIA driver. The same checkpoint and evaluation protocol were used across the restart. This runtime change is part of the interpretation of the first held-out result.
-
-The public CSV reports only completed splits, with one row per checkpoint and task. Its columns are the checkpoint label, split, simulator task index (0–9), successes, and valid episodes. The development baseline is the official pretrained `pi05_base` checkpoint. The table and figure describe simulation under a single training seed.
-
-## Regenerate the figure
-
-With Python and Matplotlib available, run from the repository root:
-
-```sh
-python scripts/plot_results.py
-```
+The repository contains completed episode outcomes, task-level aggregates, training/evaluation records, selected original videos and analysis code. The full training wrapper, model checkpoints, and unabridged execution logs are not part of this release. [Reproduction scope →](reproduce.md)

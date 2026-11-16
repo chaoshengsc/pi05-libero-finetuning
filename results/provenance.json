@@ -1,0 +1,59 @@
+{
+  "snapshot_utc": "2026-11-16T05:56:54.374468+00:00",
+  "snapshot_label": "2026-11-16 13:56 CST",
+  "source": "Projection of completed VALID FINAL.json records; no partial split is included.",
+  "published_episodes": 1100,
+  "episodes_csv_sha256": "c7f0ab1302e8e5fd6e411e4e7888566945ad7c09a0bcfbf505362b9439c80eb4",
+  "source_protocol_sha256": "7039fd18b555a239fc5505c50ff26468a246d61d78aef18fe77aef7e1b190e70",
+  "groups": [
+    {
+      "checkpoint": "pi05_base",
+      "split": "development",
+      "records": 100,
+      "final_records_sha256": "2d34f4ae3ef36e672dbb94ee8d2003ccfcdca7ccf7c6a85347f05c31205e47e7"
+    },
+    {
+      "checkpoint": "800",
+      "split": "development",
+      "records": 100,
+      "final_records_sha256": "02eb21f77e15c1a9fa4babb35ff2efc4f1c0607c417b27594d40d7e57b386b58"
+    },
+    {
+      "checkpoint": "1000",
+      "split": "development",
+      "records": 100,
+      "final_records_sha256": "575c3c910887fadc467fde1d5a5a72e7b68f5a445052130f4b3b1bbe12cee4ef"
+    },
+    {
+      "checkpoint": "1250",
+      "split": "development",
+      "records": 100,
+      "final_records_sha256": "7f2011c91c12345b6c2d77a13b2aa1bb62e9c89d48b3fe04bddee205e7d53ba7"
+    },
+    {
+      "checkpoint": "1500",
+      "split": "development",
+      "records": 100,
+      "final_records_sha256": "20fc401be80332244b40cc9720fd9aed4ae2c5742f628d404b698413ec33189c"
+    },
+    {
+      "checkpoint": "1750",
+      "split": "development",
+      "records": 100,
+      "final_records_sha256": "87747dddc996dc86e75bcf3abdaa81b44e0d6d15b7d5fb80387edc152f8c1184"
+    },
+    {
+      "checkpoint": "2000",
+      "split": "development",
+      "records": 100,
+      "final_records_sha256": "654cee3c4309fb8691402adc2aa68248dd40bdd6f70d9b73b42337fdaf2c7c73"
+    },
+    {
+      "checkpoint": "800",
+      "split": "held-out",
+      "records": 400,
+      "final_records_sha256": "519f3eba7bc70020ccd3d943fbffdb157b4fee12efc660dbcf24ed89c1bc1f74"
+    }
+  ],
+  "runtime_note": "The first 352 held-out episodes at checkpoint 800 preceded a workstation restart; the final 48 used an updated Linux kernel and NVIDIA driver. Checkpoint and protocol were unchanged."
+}
