@@ -1,0 +1,34 @@
+{
+  "pilot": {
+    "manifest_sha256": "440849041c14800390fe32e5862d954e1dca9e6b1cb4e7e02f7e25aad0d70701",
+    "extension_manifest_sha256": "8c686f94dd977402ed0222a700a27b2a884a3011f03d5e30877051a87b34da7d",
+    "selection": "Two lowest SHA-256(pi05-a5000-seed-check-v1|task:02d|init:02d) per task, held-out only",
+    "archived_manifest_modified_utc": "2026-11-17T04:35:14.576726+00:00",
+    "first_additional_seed_worker_event_utc": "2026-11-17T04:57:30.712508+00:00",
+    "inference_seeds": [
+      20261104,
+      20261118,
+      20261119
+    ],
+    "action_atol": 1e-07,
+    "action_rtol": 1e-05
+  },
+  "step800_batches": {
+    "before_update": {
+      "records": 352,
+      "accepted_event_log_sha256": "c43c38867def78f8f53862016c7b99aa35073753f8cfc4912fc011d31df434fd",
+      "first_accepted_utc": "2026-11-15T09:47:45.653582+00:00",
+      "last_accepted_utc": "2026-11-15T11:40:35.881402+00:00"
+    },
+    "after_update": {
+      "records": 48,
+      "accepted_event_log_sha256": "067ee384e5f99e96407904be65ff4e67d62dea2ca8306f02a216995d4d9dd46b",
+      "first_accepted_utc": "2026-11-16T04:24:35.822276+00:00",
+      "last_accepted_utc": "2026-11-16T04:42:56.324406+00:00"
+    }
+  },
+  "file_sha256": {
+    "pilot_replay.csv": "57123498f193785b91065af1184dd5bfe2cf29552b5a2040fe0301310362f3b6",
+    "step800_runtime.csv": "83f702e0da93f3f80d1acc192beff36f6d27ca5dc2d43b3708520c3cc0ae13b5"
+  }
+}

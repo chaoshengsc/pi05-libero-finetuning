@@ -1,0 +1,5 @@
+configs/demonstration_split.json text eol=lf
+results/episodes.csv text eol=lf
+results/inference_seeds.csv text eol=lf
+results/pilot_replay.csv text eol=lf
+results/step800_runtime.csv text eol=lf

@@ -9,42 +9,49 @@
     {
       "checkpoint": "pi05_base",
       "split": "development",
+      "inference_seed": 20261104,
       "records": 100,
       "final_records_sha256": "2d34f4ae3ef36e672dbb94ee8d2003ccfcdca7ccf7c6a85347f05c31205e47e7"
     },
     {
       "checkpoint": "800",
       "split": "development",
+      "inference_seed": 20261104,
       "records": 100,
       "final_records_sha256": "02eb21f77e15c1a9fa4babb35ff2efc4f1c0607c417b27594d40d7e57b386b58"
     },
     {
       "checkpoint": "1000",
       "split": "development",
+      "inference_seed": 20261104,
       "records": 100,
       "final_records_sha256": "575c3c910887fadc467fde1d5a5a72e7b68f5a445052130f4b3b1bbe12cee4ef"
     },
     {
       "checkpoint": "1250",
       "split": "development",
+      "inference_seed": 20261104,
       "records": 100,
       "final_records_sha256": "7f2011c91c12345b6c2d77a13b2aa1bb62e9c89d48b3fe04bddee205e7d53ba7"
     },
     {
       "checkpoint": "1500",
       "split": "development",
+      "inference_seed": 20261104,
       "records": 100,
       "final_records_sha256": "20fc401be80332244b40cc9720fd9aed4ae2c5742f628d404b698413ec33189c"
     },
     {
       "checkpoint": "1750",
       "split": "development",
+      "inference_seed": 20261104,
       "records": 100,
       "final_records_sha256": "87747dddc996dc86e75bcf3abdaa81b44e0d6d15b7d5fb80387edc152f8c1184"
     },
     {
       "checkpoint": "2000",
       "split": "development",
+      "inference_seed": 20261104,
       "records": 100,
       "final_records_sha256": "654cee3c4309fb8691402adc2aa68248dd40bdd6f70d9b73b42337fdaf2c7c73"
     },

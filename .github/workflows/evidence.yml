@@ -15,6 +15,12 @@ jobs:
           python-version: '3.11'
       - name: Validate published records and media
         run: python scripts/analyze_results.py
+      - name: Check byte-hashed inputs with Git checkout conversion enabled
+        shell: bash
+        run: |
+          for evidence_file in configs/demonstration_split.json results/episodes.csv results/inference_seeds.csv results/pilot_replay.csv results/step800_runtime.csv; do
+            git -c core.autocrlf=true cat-file --filters "HEAD:${evidence_file}" | cmp "${evidence_file}" -
+          done
       - name: Recompute paired statistics and failure outcomes
         run: python scripts/analyze_results.py --report
       - name: Test evidence guards

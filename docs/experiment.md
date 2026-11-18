@@ -95,9 +95,9 @@ The public configuration is a projection of the original protocol and the later 
 
 ## Runtime history
 
-The 800-update held-out run contains 352 episodes completed before a workstation restart and 48 completed afterward with an updated Linux kernel and NVIDIA driver. Existing valid outcomes were preserved. The checkpoint, task/state partition and evaluation protocol were unchanged.
+The 800-update held-out run contains 352 episodes completed before a workstation restart and 48 completed afterward with an updated Linux kernel and NVIDIA driver. The two evaluator logs assign every scored task/state pair to one of these batches. The respective counts are 312/352 and 34/48. The batches cover different states, so their rates describe the batches and cannot isolate the effect of the runtime update. [Episode-to-batch mapping](../results/step800_runtime.csv)
 
-Before the restart, the environment used Linux 6.11.0-26; afterward it used Linux 7.0.0-43 and NVIDIA driver 580.178.04. This runtime change is a reproducibility limitation. A fixed initial state and seed do not establish bitwise equivalence across different numerical runtimes.
+Before the restart, the environment used Linux 6.11.0-26 and NVIDIA driver 570.133.07. Afterward it used Linux 7.0.0-43 and NVIDIA driver 580.178.04. This runtime change is a reproducibility limitation. A fixed initial state and seed do not establish bitwise equivalence across different numerical runtimes.
 
 ## What is published
 

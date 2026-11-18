@@ -87,6 +87,18 @@ Two additional inference seeds evaluate 1,250 and 2,000 on the same 400 states. 
 
 For the two additional seeds, the mean difference is +1.25 pp [−0.50, 2.875]. Each initial state's two outcomes are averaged before resampling. This interval conditions on the two tested seeds and reflects variation across initial states within the fixed tasks. The original seed row is the historical 400-state comparison. Its task 01/state 34 mismatch is documented above. Both variants succeed on that state under all three seeds, so it contributes no flip or checkpoint difference.
 
+### Pilot reuse sensitivity
+
+The archived pilot manifest lists both additional inference seeds. Its recorded modification time precedes the first fresh-seed worker event by 22 minutes. The pilot takes the two lowest SHA-256-ranked held-out state IDs per task using the documented hash key. The original-seed replay covered both checkpoints on these 20 states. All 40 replay receipts agree with the historical first observation, first action block within the recorded tolerance, success flag, action-step count, and policy-query count. [Replay receipts and selection rule](../results/README.md#audit-evidence)
+
+| Additional seed | States outside the pilot | 1,250 successes | 2,000 successes | Difference |
+|:--|--:|--:|--:|--:|
+| 20261118 | 380 | 375 | 365 | +10 |
+| 20261119 | 380 | 360 | 359 | +1 |
+| **Total across both seeds** | **760 outcomes per checkpoint** | **735** | **724** | **+11** |
+
+Removing the same 20 pilot states from both checkpoints and both seeds gives +1.45 pp, compared with +1.25 pp in the full analysis. This is a descriptive sensitivity check on the same tasks and tested seeds.
+
 The table below decomposes the success-count difference (1,250 minus 2,000) by task. Each cell compares 40 initial states under one seed. The last column adds the two differences for the same 40 states evaluated twice.
 
 | Task | 20261118 | 20261119 | Total difference |

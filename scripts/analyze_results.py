@@ -10,6 +10,7 @@ import hashlib
 import json
 import random
 from collections import Counter, defaultdict
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,6 +19,14 @@ EPISODE_FIELDS = ("checkpoint", "split", "task_id", "initial_state_id", "success
 ORIGINAL_SEED = 20261104
 NEW_SEEDS = (20261118, 20261119)
 STRICT_OBSERVATION_EXCLUSIONS = ((1, 34),)
+DEMO_KEYS = {("800", "held-out", 0, 2), ("800", "held-out", 0, 16), ("800", "held-out", 9, 0)}
+COMPARISON_VARIANTS = {
+    (4, 0): {(2000, ORIGINAL_SEED), (2000, NEW_SEEDS[0])},
+    (4, 45): {(2000, seed) for seed in (ORIGINAL_SEED, *NEW_SEEDS)},
+    (8, 12): {(2000, ORIGINAL_SEED), (1250, ORIGINAL_SEED)},
+}
+REPLAY_CHECKS = ("same_observation", "same_first_action_block", "same_success",
+                 "same_policy_steps", "same_query_count")
 
 
 def load_rows(root=ROOT, *, extended=False):
@@ -83,16 +92,30 @@ def per_task(rows):
     return dict(counts)
 
 
+def validate_manifest_groups(entries, expected):
+    observed = {}
+    for entry in entries:
+        key = (entry["checkpoint"], entry["split"], entry["inference_seed"])
+        if key in observed:
+            raise ValueError(f"Duplicate provenance group: {key}")
+        observed[key] = entry["records"]
+    if observed != expected:
+        raise ValueError("Provenance group counts or inference seeds differ from episode evidence")
+
+
 def validate_repository(root=ROOT):
     protocol = json.loads((root / "configs/evaluation.json").read_text())
     metadata = json.loads((root / "results/provenance.json").read_text())
     validate_observation_exclusions(metadata)
     rows = load_rows(root)
     groups = validate_rows(rows, protocol)
-    expected_groups = {(x["checkpoint"], x["split"]) for x in metadata["groups"]}
     required = {(checkpoint, split) for checkpoint in CHECKPOINTS for split in ("development", "held-out")}
-    if set(groups) != expected_groups or set(groups) != required or len(rows) != metadata["published_episodes"]:
+    if set(groups) != required or len(rows) != metadata["published_episodes"]:
         raise ValueError("Published coverage differs from the provenance manifest")
+    if metadata["original_inference_seed"] != ORIGINAL_SEED or protocol["noise_seed"] != ORIGINAL_SEED:
+        raise ValueError("Original inference seed differs from the evaluation protocol")
+    validate_manifest_groups(metadata["groups"], {(*key, ORIGINAL_SEED): len(records)
+                                                   for key, records in groups.items()})
     digest = hashlib.sha256((root / "results/episodes.csv").read_bytes()).hexdigest()
     if digest != metadata["episodes_csv_sha256"]:
         raise ValueError("Episode CSV checksum differs from the provenance manifest")
@@ -108,16 +131,21 @@ def validate_repository(root=ROOT):
         raise ValueError("Per-task counts do not match the episode evidence")
     media = json.loads((root / "assets/demos/manifest.json").read_text())
     index = {(r["checkpoint"], r["split"], r["task_id"], r["initial_state_id"]): r for r in rows}
-    for clip in media["clips"]:
-        key = (str(clip["checkpoint"]), clip["split"], clip["task_id"], clip["initial_state_id"])
+    demo_keys = [(str(c["checkpoint"]), c["split"], c["task_id"], c["initial_state_id"]) for c in media["clips"]]
+    if set(demo_keys) != DEMO_KEYS or len(demo_keys) != len(DEMO_KEYS):
+        raise ValueError("Missing or duplicate original demos")
+    for key, clip in zip(demo_keys, media["clips"]):
         row = index[key]
         if row["success"] != int(clip["success"]) or row["policy_steps"] != clip["policy_steps"]:
             raise ValueError(f"Demo label differs from episode outcome: {key}")
         source = root / clip["mp4"]
         if hashlib.sha256(source.read_bytes()).hexdigest() != clip["video_sha256"]:
             raise ValueError(f"Demo checksum mismatch: {source.name}")
+        if source.stat().st_size != clip["video_bytes"] or not (root / clip["gif"]).is_file():
+            raise ValueError(f"Demo size or preview differs from the manifest: {source.name}")
     seeds = validate_inference_seeds(root, protocol, metadata)
     validate_comparisons(root, rows, seeds, metadata)
+    audit_evidence(root, rows, seeds, protocol, metadata["pilot_episodes_reused"])
     return rows, groups
 
 
@@ -131,9 +159,10 @@ def validate_inference_seeds(root, protocol, metadata):
     expected = {(str(step), "held-out", seed) for step in (1250, 2000) for seed in NEW_SEEDS}
     rows = load_rows(root, extended=True)
     seen = {(r["checkpoint"], r["split"], r["inference_seed"]) for r in rows}
-    manifest = {(g["checkpoint"], g["split"], g["inference_seed"]) for g in metadata["inference_seed_groups"]}
-    if seen != expected or manifest != expected or len(rows) != metadata["inference_seed_episodes"]:
+    if seen != expected or len(rows) != metadata["inference_seed_episodes"]:
         raise ValueError("Inference seed coverage differs from the provenance manifest")
+    validate_manifest_groups(metadata["inference_seed_groups"],
+                             Counter((r["checkpoint"], r["split"], r["inference_seed"]) for r in rows))
     digest = hashlib.sha256((root / "results/inference_seeds.csv").read_bytes()).hexdigest()
     if digest != metadata["inference_seeds_csv_sha256"]:
         raise ValueError("Inference seed CSV checksum differs from the provenance manifest")
@@ -149,13 +178,16 @@ def validate_comparisons(root, rows, seeds, metadata):
     }
     media = json.loads((root / "assets/failures/manifest.json").read_text())
     case_keys = {(c["task_id"], c["initial_state_id"]) for c in media["cases"]}
-    if case_keys != {(4, 0), (4, 45), (8, 12)} or len(media["cases"]) != len(case_keys):
+    if case_keys != COMPARISON_VARIANTS.keys() or len(media["cases"]) != len(case_keys):
         raise ValueError("Unexpected set of failure comparisons")
     excluded = {tuple(key) for key in metadata["strict_observation_exclusions"]}
     for case in media["cases"]:
         task, initial = case["task_id"], case["initial_state_id"]
         if (task, initial) in excluded or by_case["2000", task, initial, ORIGINAL_SEED]["success"]:
             raise ValueError("Comparison is outside the matched original failures")
+        variant_keys = [(v["checkpoint"], v["inference_seed"]) for v in case["variants"]]
+        if set(variant_keys) != COMPARISON_VARIANTS[task, initial] or len(variant_keys) != len(set(variant_keys)):
+            raise ValueError(f"Missing or duplicate failure comparison variants: {(task, initial)}")
         for variant in case["variants"]:
             row = by_case[str(variant["checkpoint"]), task, initial, variant["inference_seed"]]
             if (row["success"], row["policy_steps"]) != (variant["success"], variant["policy_steps"]):
@@ -163,6 +195,88 @@ def validate_comparisons(root, rows, seeds, metadata):
         for asset in (case["video"], case["frames"]):
             if hashlib.sha256((root / asset["path"]).read_bytes()).hexdigest() != asset["sha256"]:
                 raise ValueError(f"Failure comparison checksum mismatch: {asset['path']}")
+
+
+def audit_evidence(root, rows, seed_rows, protocol, reused_count):
+    sources = json.loads((root / "results/audit_evidence.json").read_text())
+    tables = {}
+    for name, fields in {
+        "pilot_replay.csv": ("checkpoint", "task_id", "initial_state_id", "success", "policy_steps", *REPLAY_CHECKS),
+        "step800_runtime.csv": ("task_id", "initial_state_id", "batch"),
+    }.items():
+        path = root / "results" / name
+        if hashlib.sha256(path.read_bytes()).hexdigest() != sources["file_sha256"][name]:
+            raise ValueError(f"Audit evidence checksum mismatch: {name}")
+        with path.open(newline="") as stream:
+            reader = csv.DictReader(stream)
+            if tuple(reader.fieldnames or ()) != fields:
+                raise ValueError(f"Unexpected audit evidence columns: {name}")
+            tables[name] = list(reader)
+
+    def sample_key(row):
+        return int(row["task_id"]), int(row["initial_state_id"])
+
+    def pilot_rank(task, initial):
+        return hashlib.sha256(f"pi05-a5000-seed-check-v1|{task:02d}|{initial:02d}".encode()).hexdigest()
+
+    pilot_keys = {(task["task_index"], initial) for task in protocol["spatial_states"]
+                  for initial in sorted(task["formal"], key=lambda i: pilot_rank(task["task_index"], i))[:2]}
+    pilot = sources["pilot"]
+    if pilot["inference_seeds"] != [ORIGINAL_SEED, *NEW_SEEDS] or (
+        pilot["action_atol"], pilot["action_rtol"]
+    ) != (1e-7, 1e-5):
+        raise ValueError("Pilot seed or action tolerance differs from the recorded protocol")
+    recorded = datetime.fromisoformat(pilot["archived_manifest_modified_utc"])
+    first_event = datetime.fromisoformat(pilot["first_additional_seed_worker_event_utc"])
+    if recorded.utcoffset() is None or first_event.utcoffset() is None or recorded >= first_event:
+        raise ValueError("Archived pilot manifest must predate the first additional-seed event")
+    originals = {(r["checkpoint"], *sample_key(r)): r for r in rows if r["split"] == "held-out"}
+    replays = tables["pilot_replay.csv"]
+    replay_keys = [(r["checkpoint"], *sample_key(r)) for r in replays]
+    if set(replay_keys) != {(step, *key) for step in ("1250", "2000") for key in pilot_keys} or (
+        len(replay_keys) != len(set(replay_keys))
+    ):
+        raise ValueError("Missing, duplicate or unfrozen pilot replay keys")
+    for key, replay in zip(replay_keys, replays):
+        original = originals[key]
+        if any(replay[field] != "1" for field in REPLAY_CHECKS) or any(
+            int(replay[field]) != original[field] for field in ("success", "policy_steps")
+        ):
+            raise ValueError(f"Pilot replay does not match the original outcome: {key}")
+
+    runtime_rows = tables["step800_runtime.csv"]
+    runtime_keys = [sample_key(r) for r in runtime_rows]
+    step800_keys = {(task, initial) for step, task, initial in originals if step == "800"}
+    batch_counts = Counter(r["batch"] for r in runtime_rows)
+    if (set(runtime_keys) != step800_keys or len(runtime_keys) != len(step800_keys)
+        or batch_counts != {"before_update": 352, "after_update": 48}
+        or batch_counts != {batch: receipt["records"] for batch, receipt in sources["step800_batches"].items()}):
+        raise ValueError("800-update batch assignments do not match the recovery evidence")
+
+    excluded_rows = [r for r in seed_rows if sample_key(r) in pilot_keys]
+    if len(excluded_rows) != reused_count or reused_count != 80:
+        raise ValueError("Pilot reuse count does not match the evaluated rows")
+    group_summary = {}
+    for label, keep in (("pilot", True), ("without_pilot", False)):
+        per_seed = {}
+        for seed in NEW_SEEDS:
+            group = [r for r in seed_rows if r["inference_seed"] == seed and
+                     (sample_key(r) in pilot_keys) == keep]
+            left = [r["success"] for r in group if r["checkpoint"] == "1250"]
+            right = [r["success"] for r in group if r["checkpoint"] == "2000"]
+            per_seed[str(seed)] = {"pairs": len(left), "successes_1250": sum(left), "successes_2000": sum(right)}
+        per_checkpoint = sum(item["pairs"] for item in per_seed.values())
+        delta = sum(item["successes_1250"] - item["successes_2000"] for item in per_seed.values())
+        group_summary[label] = {"per_seed": per_seed, "episodes_per_checkpoint": per_checkpoint,
+                                "success_count_delta": delta, "delta_pp": round(100 * delta / per_checkpoint, 6)}
+    return {
+        "same_seed_replays": {"episodes": len(replays), **{field: sum(int(r[field]) for r in replays)
+                                                          for field in REPLAY_CHECKS}},
+        "inference_seed_pilot_sensitivity": group_summary,
+        "step800_runtime": {batch: {"episodes": count, "successes": sum(
+            originals[("800", *sample_key(r))]["success"] for r in runtime_rows if r["batch"] == batch
+        )} for batch, count in batch_counts.items()},
+    }
 
 
 def task_differences(left, right, excluded=()):
@@ -294,7 +408,11 @@ def main():
         elif args.report:
             metadata = json.loads((ROOT / "results/provenance.json").read_text())
             excluded = {tuple(key) for key in metadata["strict_observation_exclusions"]}
-            print(json.dumps(held_out_report(rows, load_rows(extended=True), excluded), indent=2))
+            seeds = load_rows(extended=True)
+            protocol = json.loads((ROOT / "configs/evaluation.json").read_text())
+            report = held_out_report(rows, seeds, excluded)
+            report.update(audit_evidence(ROOT, rows, seeds, protocol, metadata["pilot_episodes_reused"]))
+            print(json.dumps(report, indent=2))
         else:
             additional = len(load_rows(extended=True))
             print(f"Verified {len(rows):,} original-seed episodes in {len(groups)} complete groups and {additional:,} additional-seed episodes.")

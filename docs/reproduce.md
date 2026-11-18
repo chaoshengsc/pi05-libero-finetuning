@@ -28,7 +28,8 @@ The script verifies:
 - Exact membership of the frozen initial-state partition.
 - Complete coverage for every published group.
 - Equality between episode-derived counts and the public per-task CSV.
-- Checksums and outcome labels for the original demos and all three failure comparisons.
+- Provenance group sizes and inference seeds, plus complete media labels and file integrity.
+- Coverage and checksums of the pilot replay and 800-update runtime tables. Git attributes keep the byte-hashed CSVs and demonstration split at LF on checkout.
 
 The validator checks consistency of the published evidence. The original workstation logs are not all distributed, so source-record digests are provenance anchors rather than independent verification of the whole experiment.
 
@@ -40,7 +41,7 @@ python scripts/analyze_results.py --pair 1750 2000 --split development
 
 Expected outcomes are 93 shared successes, 3 successes unique to 1,750, 4 unique to 2,000, and 0 shared failures. The net difference is +1 percentage point.
 
-Use `--split held-out` for the original 400-state comparison. The full report recomputes both strict 399-pair comparisons, paired bootstrap intervals, task-level differences for the additional inference seeds, and the original 2,000-update failure list.
+Use `--split held-out` for the original 400-state comparison. The full report also recomputes both strict 399-pair comparisons, paired bootstrap intervals, task-level seed differences, and the original 2,000-update failure list. Its audit section checks 40 original-seed replays, compares the new seeds with the 20 pilot states removed, and gives the two 800-update runtime-batch totals.
 
 ```sh
 python scripts/analyze_results.py --report

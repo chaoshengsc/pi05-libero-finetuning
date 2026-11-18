@@ -4,11 +4,11 @@ import json
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from analyze_results import held_out_report, load_rows, paired_counts, validate_repository, validate_rows
-from unittest.mock import patch
+from analyze_results import audit_evidence, held_out_report, load_rows, paired_counts, validate_repository, validate_rows
 
 
 class EvidenceGuards(unittest.TestCase):
@@ -75,6 +75,45 @@ class EvidenceGuards(unittest.TestCase):
         subtotal = sum(sum(row["success_delta_by_seed"].values()) for row in tasks if row["task_id"] in (4, 8))
         total = sum(sum(row["success_delta_by_seed"].values()) for row in tasks)
         self.assertEqual((subtotal, total - subtotal), (12, -2))
+
+    def test_incomplete_or_inconsistent_public_manifests_are_rejected(self):
+        read_text = Path.read_text
+        cases = (
+            ("results/provenance.json", lambda data: data["groups"][0].update(records=999), "Provenance group"),
+            ("results/provenance.json", lambda data: data.update(original_inference_seed=123), "Original inference seed"),
+            ("configs/evaluation.json", lambda data: data.update(noise_seed=123), "Original inference seed"),
+            ("results/provenance.json", lambda data: data["inference_seed_groups"][0].update(records=999),
+             "Provenance group"),
+            ("assets/demos/manifest.json", lambda data: data["clips"].clear(), "original demos"),
+            ("assets/failures/manifest.json", lambda data: data["cases"][0]["variants"].clear(), "comparison variants"),
+            ("results/audit_evidence.json", lambda data: data["pilot"].update(
+                archived_manifest_modified_utc="2026-11-18T00:00:00+00:00"), "must predate"),
+        )
+        for relative_path, change, message in cases:
+            with self.subTest(path=relative_path, error=message):
+                def substituted(path, *args, **kwargs):
+                    content = read_text(path, *args, **kwargs)
+                    if path == ROOT / relative_path:
+                        data = json.loads(content)
+                        change(data)
+                        return json.dumps(data)
+                    return content
+
+                with patch.object(Path, "read_text", substituted):
+                    with self.assertRaisesRegex(ValueError, message):
+                        validate_repository()
+
+    def test_supplemental_receipts_reproduce_the_review_findings(self):
+        report = audit_evidence(ROOT, self.rows, load_rows(extended=True), self.protocol, 80)
+        replay = report["same_seed_replays"]
+        self.assertEqual(replay["episodes"], 40)
+        self.assertTrue(all(total == 40 for total in replay.values()))
+        sensitivity = report["inference_seed_pilot_sensitivity"]["without_pilot"]
+        self.assertEqual((sensitivity["episodes_per_checkpoint"], sensitivity["success_count_delta"]), (760, 11))
+        self.assertEqual(report["step800_runtime"], {
+            "before_update": {"episodes": 352, "successes": 312},
+            "after_update": {"episodes": 48, "successes": 34},
+        })
 
 
 if __name__ == "__main__":
