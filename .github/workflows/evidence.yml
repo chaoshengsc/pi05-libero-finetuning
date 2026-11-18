@@ -15,5 +15,7 @@ jobs:
           python-version: '3.11'
       - name: Validate published records and media
         run: python scripts/analyze_results.py
+      - name: Recompute paired statistics and failure outcomes
+        run: python scripts/analyze_results.py --report
       - name: Test evidence guards
         run: python -m unittest discover -s tests

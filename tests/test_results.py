@@ -7,7 +7,8 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from analyze_results import load_rows, validate_rows, paired_counts
+from analyze_results import held_out_report, load_rows, paired_counts, validate_repository, validate_rows
+from unittest.mock import patch
 
 
 class EvidenceGuards(unittest.TestCase):
@@ -41,6 +42,39 @@ class EvidenceGuards(unittest.TestCase):
         row["initial_state_id"] = 999
         with self.assertRaisesRegex(ValueError, "identical"):
             paired_counts(rows, "1750", "2000", "development")
+
+    def test_strict_pairing_rejects_a_changed_exclusion(self):
+        read_text = Path.read_text
+        for wrong in ([], [[99, 99]], [[0, 2]]):
+            with self.subTest(exclusions=wrong):
+                def substituted(path, *args, **kwargs):
+                    content = read_text(path, *args, **kwargs)
+                    if path == ROOT / "results/provenance.json":
+                        metadata = json.loads(content)
+                        metadata["strict_observation_exclusions"] = wrong
+                        return json.dumps(metadata)
+                    return content
+
+                with patch.object(Path, "read_text", substituted):
+                    with self.assertRaisesRegex(ValueError, "Strict observation exclusions"):
+                        validate_repository()
+
+    def test_report_reproduces_the_audited_comparisons(self):
+        metadata = json.loads((ROOT / "results/provenance.json").read_text())
+        exclusions = {tuple(key) for key in metadata["strict_observation_exclusions"]}
+        report = held_out_report(self.rows, load_rows(extended=True), exclusions)
+        strict = report["strict_a0_to_2000"]
+        self.assertEqual((strict["episodes"], strict["right_only"], strict["both_failure"]), (399, 381, 18))
+        self.assertEqual(strict["task_mean_delta_pp"], 95.5)
+        self.assertEqual(strict["paired_CI95_pp"], [93.5, 97.25])
+        checkpoint_pair = report["strict_1750_to_2000"]
+        self.assertEqual((checkpoint_pair["episodes"], checkpoint_pair["both_success"],
+                          checkpoint_pair["left_only"], checkpoint_pair["right_only"]), (399, 363, 15, 18))
+        self.assertEqual(checkpoint_pair["task_mean_delta_pp"], 0.75)
+        tasks = report["new_seed_success_deltas_by_task"]
+        subtotal = sum(sum(row["success_delta_by_seed"].values()) for row in tasks if row["task_id"] in (4, 8))
+        total = sum(sum(row["success_delta_by_seed"].values()) for row in tasks)
+        self.assertEqual((subtotal, total - subtotal), (12, -2))
 
 
 if __name__ == "__main__":

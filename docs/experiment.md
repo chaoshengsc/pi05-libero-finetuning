@@ -49,7 +49,7 @@ The run retains the original learning-rate schedule: warmup to 1,000 updates, st
 
 ## Closed-loop inference
 
-Each query uses the task instruction, camera observations, and the policy's configured state input. The loop renders 256 × 256 observations, applies the recorded 180° orientation transform and 224 × 224 resize, samples an action chunk, executes part of it, then observes again.
+Each query conditions the policy on camera images and the task instruction. The state array remains in the model interface, but this run disables discrete state tokenization and the π0.5 action expert does not use a continuous state token. The loop renders 256 × 256 observations, applies the recorded 180° orientation transform and 224 × 224 resize, samples an action chunk, executes part of it, then observes again.
 
 | Setting | Value |
 |:--|:--|
@@ -73,7 +73,7 @@ All six checkpoints use the same 100 development task/state pairs and the same 4
 
 The full six-checkpoint held-out comparison was fixed before those scores were used to select a winner. The final ranking is still a comparison over six candidates on one held-out sample; it is not an independent confirmation of the post-hoc top-ranked checkpoint.
 
-The matched baseline restores the original frozen step-zero checkpoint with zero optimizer updates, then runs all 400 held-out states. This comparison tests the training endpoint, 2,000 updates, with the same adapter structure and training-derived normalization. Task 01/state 34 has a recorded first-observation mismatch at the original 2,000-update checkpoint, so the strict A0 comparison excludes it and the full 400-state analysis reports sensitivity to its inclusion. The formal 1,750 vs 2,000 comparison uses all 400 state pairs.
+The matched baseline restores the original frozen step-zero checkpoint with zero optimizer updates, then runs all 400 held-out states. This comparison tests the training endpoint, 2,000 updates, with the same adapter structure and training-derived normalization. Task 01/state 34 has a recorded first-observation mismatch at the original 2,000-update checkpoint. The results report both the strict 399-pair comparison and the all-state comparison for A0 vs 2,000 and for 1,750 vs 2,000. [Observation exceptions and retry](results.md#observation-exceptions)
 
 Paired bootstrap intervals resample `(task_id, initial_state_id)` within each fixed task and average task differences equally. The 10,000 draws use analysis seeds 20261104 for 1,750 vs 2,000, 20261118 for A0 vs 2,000, and 20261117 for inference-seed comparisons. For the two-seed average, both observations from each initial state stay together. [Full paired results](results.md)
 

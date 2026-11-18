@@ -40,7 +40,7 @@ python scripts/analyze_results.py --pair 1750 2000 --split development
 
 Expected outcomes are 93 shared successes, 3 successes unique to 1,750, 4 unique to 2,000, and 0 shared failures. The net difference is +1 percentage point.
 
-Use `--split held-out` for the original 400-state comparison. The full report recomputes the strict 399-pair A0 result, paired bootstrap intervals, and the original 2,000-update failure list.
+Use `--split held-out` for the original 400-state comparison. The full report recomputes both strict 399-pair comparisons, paired bootstrap intervals, task-level differences for the additional inference seeds, and the original 2,000-update failure list.
 
 ```sh
 python scripts/analyze_results.py --report
@@ -82,4 +82,4 @@ The GIF is a preview. The original MP4 remains unchanged and its checksum is rec
 python -m unittest discover -s tests
 ```
 
-These checks inject duplicate episodes, incomplete groups, wrong-split states, unavailable held-out pairs, and mismatched pairing keys. Each must be rejected.
+The tests inject duplicate episodes, incomplete groups, wrong-split states, unavailable held-out pairs, mismatched pairing keys, and changed strict-pair exclusions. They also assert the published strict A0 comparison and the task breakdown. CI runs the full report and these tests.

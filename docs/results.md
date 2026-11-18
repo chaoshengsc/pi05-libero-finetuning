@@ -61,9 +61,19 @@ The primary baseline comparison uses the fixed training endpoint at 2,000 update
 |:--|--:|--:|--:|--:|--:|--:|--:|
 | A0 → 2,000, strict | 399 | 0 | 0 | 381 | 18 | +95.50 | [93.50, 97.25] |
 | A0 → 2,000, all states | 400 | 0 | 0 | 382 | 18 | +95.50 | [93.50, 97.25] |
-| 1,750 → 2,000 | 400 | 364 | 15 | 18 | 3 | +0.75 | [−2.00, 3.50] |
+| 1,750 → 2,000, strict | 399 | 363 | 15 | 18 | 3 | +0.75 | [−2.00, 3.50] |
+| 1,750 → 2,000, all states | 400 | 364 | 15 | 18 | 3 | +0.75 | [−2.00, 3.50] |
 
-The strict A0 comparison excludes task 01, state 34 because the original 2,000-update run recorded a different first observation. Each task still has equal weight with 39 pairs for task 01 and 40 elsewhere. The all-state row shows sensitivity to including this pair. The 1,750 → 2,000 row reports the original matched-initial-state analysis.
+Both strict comparisons exclude task 01, state 34 because the original 2,000-update run recorded a different first observation. Each task still has equal weight, with 39 pairs for task 01 and 40 elsewhere. The all-state rows show sensitivity to including this pair.
+
+## Observation exceptions
+
+| Checkpoint / inference seed | Task / state | Observation check | Treatment |
+|:--|:--|:--|:--|
+| 2,000 / 20261104 | 01 / 34 | The scored historical rollout has a different first-observation hash from the shared reference. | The historical success remains in the all-state results. The strict paired comparisons exclude the pair. The original group was retained without a new rollout for this comparison. |
+| 1,250 / 20261119 | 08 / 25 | The first attempt reached the success predicate at step 182, but its first-observation hash differed from the reference. | The first attempt was rejected. The same-condition retry matched the reference and reached the 220-step limit. The retry is the single scored outcome (failure). |
+
+The first-observation check was applied independently of the rollout outcome. Technical attempts and final scored episodes are counted separately.
 
 ## Inference seed sensitivity
 
@@ -76,6 +86,24 @@ Two additional inference seeds evaluate 1,250 and 2,000 on the same 400 states. 
 | 20261119 | 379 | 379 | 362 | 17 | 17 | 4 | 0.00 | [−2.75, 2.75] |
 
 For the two additional seeds, the mean difference is +1.25 pp [−0.50, 2.875]. Each initial state's two outcomes are averaged before resampling. This interval conditions on the two tested seeds and reflects variation across initial states within the fixed tasks. The original seed row is the historical 400-state comparison. Its task 01/state 34 mismatch is documented above. Both variants succeed on that state under all three seeds, so it contributes no flip or checkpoint difference.
+
+The table below decomposes the success-count difference (1,250 minus 2,000) by task. Each cell compares 40 initial states under one seed. The last column adds the two differences for the same 40 states evaluated twice.
+
+| Task | 20261118 | 20261119 | Total difference |
+|:--|--:|--:|--:|
+| 00 | 0 | 0 | 0 |
+| 01 | +1 | 0 | +1 |
+| 02 | 0 | +1 | +1 |
+| 03 | +1 | −1 | 0 |
+| 04 | +6 | 0 | +6 |
+| 05 | 0 | −1 | −1 |
+| 06 | 0 | −2 | −2 |
+| 07 | 0 | 0 | 0 |
+| 08 | +2 | +4 | +6 |
+| 09 | 0 | −1 | −1 |
+| **Total** | **+10** | **0** | **+10** |
+
+In this descriptive breakdown, tasks 04 and 08 contribute +12 successes, while the other eight tasks contribute −2. The net difference of 10 successes over 800 episodes per checkpoint is 1.25 pp. This retrospective breakdown locates the observed difference within the fixed task set.
 
 ## Endpoint failure analysis
 

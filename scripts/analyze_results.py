@@ -17,6 +17,7 @@ CHECKPOINTS = ("pi05_base", "800", "1000", "1250", "1500", "1750", "2000")
 EPISODE_FIELDS = ("checkpoint", "split", "task_id", "initial_state_id", "success", "policy_steps")
 ORIGINAL_SEED = 20261104
 NEW_SEEDS = (20261118, 20261119)
+STRICT_OBSERVATION_EXCLUSIONS = ((1, 34),)
 
 
 def load_rows(root=ROOT, *, extended=False):
@@ -85,6 +86,7 @@ def per_task(rows):
 def validate_repository(root=ROOT):
     protocol = json.loads((root / "configs/evaluation.json").read_text())
     metadata = json.loads((root / "results/provenance.json").read_text())
+    validate_observation_exclusions(metadata)
     rows = load_rows(root)
     groups = validate_rows(rows, protocol)
     expected_groups = {(x["checkpoint"], x["split"]) for x in metadata["groups"]}
@@ -117,6 +119,12 @@ def validate_repository(root=ROOT):
     seeds = validate_inference_seeds(root, protocol, metadata)
     validate_comparisons(root, rows, seeds, metadata)
     return rows, groups
+
+
+def validate_observation_exclusions(metadata):
+    expected = [list(key) for key in STRICT_OBSERVATION_EXCLUSIONS]
+    if metadata.get("strict_observation_exclusions") != expected:
+        raise ValueError(f"Strict observation exclusions must match the audit: {expected}")
 
 
 def validate_inference_seeds(root, protocol, metadata):
@@ -212,6 +220,20 @@ def held_out_report(rows, seed_rows, excluded):
         step: {key: sum(outcomes[step, seed][key] for seed in NEW_SEEDS) / len(NEW_SEEDS) for key in original}
         for step in ("1250", "2000")
     }
+    seed_deltas_by_task = [
+        {
+            "task_id": task,
+            "success_delta_by_seed": {
+                str(seed): sum(
+                    outcomes["1250", seed][key] - outcomes["2000", seed][key]
+                    for key in original if key[0] == task
+                )
+                for seed in NEW_SEEDS
+            },
+        }
+        for task in sorted({key[0] for key in original})
+    ]
+    strict_1750 = task_differences(outcomes["1750", ORIGINAL_SEED], original, excluded)
     failures = [{
         "task_id": task, "initial_state_id": initial,
         "successful_new_seeds": [seed for seed in NEW_SEEDS if outcomes["2000", seed][task, initial]],
@@ -224,9 +246,16 @@ def held_out_report(rows, seed_rows, excluded):
         "1750_to_2000": dict(paired_counts(rows, "1750", "2000", "held-out"),
                              paired_CI95_pp=paired_interval(task_differences(
                                  outcomes["1750", ORIGINAL_SEED], original), ORIGINAL_SEED)),
+        "strict_1750_to_2000": dict(
+            paired_counts(rows, "1750", "2000", "held-out", exclude=excluded),
+            task_mean_delta_pp=round(100 * sum(sum(group) / len(group) for group in strict_1750)
+                                     / len(strict_1750), 6),
+            paired_CI95_pp=paired_interval(strict_1750, ORIGINAL_SEED),
+        ),
         "1250_vs_2000_by_inference_seed": checks,
         "mean_new_seed_1250_minus_2000_pp": sum(c["delta_1250_minus_2000_pp"] for c in checks[1:]) / len(NEW_SEEDS),
         "mean_new_seed_paired_CI95_pp": paired_interval(task_differences(new_mean["2000"], new_mean["1250"]), 20261117),
+        "new_seed_success_deltas_by_task": seed_deltas_by_task,
         "original_2000_failures": failures,
     }
 
