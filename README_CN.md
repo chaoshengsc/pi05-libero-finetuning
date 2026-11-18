@@ -2,7 +2,7 @@
 
 单卡训练、配对评测与失败分析
 
-[English](README.md) · [方法详解（英文）](docs/experiment.md) · [实验结果](#实验结果) · [对照录像](#失败分析) · [数据与复算](#可复现性) · [冻结版 v1.0.0](https://github.com/chaoshengsc/pi05-libero-finetuning/releases/tag/v1.0.0)
+[English](README.md) · [方法详解（英文）](docs/experiment.md) · [实验结果](#实验结果) · [对照录像](#失败分析) · [数据与复算](#可复现性) · [版本发布](https://github.com/chaoshengsc/pi05-libero-finetuning/releases)
 
 ## 摘要
 

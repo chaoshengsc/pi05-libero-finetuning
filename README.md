@@ -2,7 +2,7 @@
 
 Single-GPU training, paired evaluation, and failure analysis
 
-[简体中文](README_CN.md) · [Method](docs/experiment.md) · [Results](#results) · [Videos](#failure-analysis) · [Data and reproduction](#reproducibility) · [Frozen v1.0.0](https://github.com/chaoshengsc/pi05-libero-finetuning/releases/tag/v1.0.0)
+[简体中文](README_CN.md) · [Method](docs/experiment.md) · [Results](#results) · [Videos](#failure-analysis) · [Data and reproduction](#reproducibility) · [Releases](https://github.com/chaoshengsc/pi05-libero-finetuning/releases)
 
 ## Abstract
 
