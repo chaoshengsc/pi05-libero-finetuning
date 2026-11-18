@@ -2,10 +2,10 @@
 import io
 import json
 import subprocess
-import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle, FancyArrowPatch
 from plot_results import ROOT, INK, BLUE, GRAY, style, save
 from analyze_results import validate_repository
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle, FancyArrowPatch
 
 
 def box(ax, x, y, w, h, lines, facecolor="white"):
@@ -18,25 +18,32 @@ def arrow(ax, start, end):
 
 
 def experiment():
-    fig, ax = plt.subplots(figsize=(8.2, 3.35))
-    fig.subplots_adjust(left=.01, right=.99, bottom=.03, top=.98)
-    ax.set(xlim=(0, 10), ylim=(0, 4)); ax.axis("off")
-    ax.text(.12, 3.78, "(a) Fine-tuning", fontsize=11)
-    box(ax, .12, 2.55, 2.35, .93, ["LIBERO demonstrations", "1,608 training / 85 validation"])
-    box(ax, 3.1, 2.55, 2.8, .93, [r"$\pi_{0.5}$ base (frozen) + LoRA", "rank 64; alpha 32"], "#F2F4F6")
-    box(ax, 6.56, 2.55, 3.22, .93, ["Checkpoints (optimizer updates)", "800, 1,000, 1,250, 1,500, 1,750, 2,000"])
-    arrow(ax, (2.47, 3.02), (3.1, 3.02))
-    arrow(ax, (5.9, 3.02), (6.56, 3.02))
-    ax.text(4.5, 2.29, "RTX A5000; effective batch 256; seed 0", ha="center", fontsize=9, color=GRAY)
+    fig, ax = plt.subplots(figsize=(8.2, 4.4))
+    fig.subplots_adjust(left=.01, right=.99, bottom=.02, top=.99)
+    ax.set(xlim=(0, 10), ylim=(0, 5.25))
+    ax.axis("off")
+    ax.text(.15, 4.98, "(a) Train one adapter trajectory on one RTX A5000", fontsize=11)
+    box(ax, .15, 3.36, 2.84, 1.31,
+        ["Demonstration sample", "Scene + wrist images + instruction", "10 consecutive demo actions"])
+    box(ax, 3.58, 3.36, 2.84, 1.31,
+        ["Frozen base + all-linear LoRA", "Flow matching loss", "8 samples × 32 microbatches / update"], "#F2F4F6")
+    box(ax, 7.01, 3.36, 2.84, 1.31,
+        ["A0: zero updates", "Save six checkpoints", "800 / 1k / 1,250 / 1,500 / 1,750 / 2k"])
+    arrow(ax, (2.99, 4.02), (3.58, 4.02))
+    arrow(ax, (6.42, 4.02), (7.01, 4.02))
+    ax.text(.15, 2.99, "1,608 training demos / 85 offline validation demos", fontsize=9, color=GRAY)
 
-    ax.text(.12, 1.83, "(b) Closed-loop evaluation", fontsize=11)
-    box(ax, .12, .32, 2.35, 1.14, ["LIBERO-Spatial", "10 tasks × 50 initial states", "100 development / 400 held-out"])
-    box(ax, 3.1, .32, 2.8, 1.14, ["Observation → policy → action", "Replan after 5 actions", "Task-success predicate"])
-    box(ax, 6.56, .32, 3.22, 1.14, ["Paired checkpoint comparison", "Same task / initial-state pairs", "One scored rollout per pair"])
-    arrow(ax, (2.47, .89), (3.1, .89))
-    arrow(ax, (5.9, .89), (6.56, .89))
-    ax.plot([8.17, 8.17, 4.5], [2.55, 1.95, 1.95], color=INK, lw=.7)
-    arrow(ax, (4.5, 1.95), (4.5, 1.46))
+    ax.text(.15, 2.47, "(b) Compare policies on matched simulator initial states", fontsize=11)
+    ax.text(.15, 2.12, "10 LIBERO-Spatial tasks  ·  100 development states  ·  400 separate held-out states",
+            fontsize=9, color=GRAY)
+    box(ax, .15, .56, 3.10, 1.27,
+        ["Fine-tuning gain", "A0 vs 2,000 updates", "400 states (399 strict pairs)"])
+    box(ax, 3.45, .56, 3.10, 1.27,
+        ["Checkpoint ranking", "Six trained checkpoints", "400 states at the original seed"], "#F2F4F6")
+    box(ax, 6.75, .56, 3.10, 1.27,
+        ["Inference seed sensitivity", "1,250 vs 2,000 updates", "400 shared states × 2 new seeds"])
+    ax.text(.15, .20, "One score per checkpoint × inference seed × task and initial state. Replan every five actions.",
+            fontsize=9, color=GRAY)
     save(fig, "experiment-design")
 
 

@@ -1,4 +1,4 @@
-# Experiment protocol
+# Method and experiment protocol
 
 [Project overview](../README.md) · [Results](results.md) · [Reproduce the analysis](reproduce.md)
 
@@ -10,7 +10,21 @@ The unit of training progress is an **optimizer update**. The unit of evaluation
 
 ![Experiment design](../assets/experiment-design.png)
 
-**Figure 1. Experimental design.** (a) Fine-tuning and checkpoint retention. (b) Paired closed-loop evaluation on disjoint development and held-out initial-state partitions. [PDF](../assets/experiment-design.pdf)
+**Figure 1. Experimental design.** (a) The sample window, one accumulated update, and the saved checkpoints. (b) The matched baseline, the six-checkpoint ranking, and the inference-seed comparison. [PDF](../assets/experiment-design.pdf) · [SVG](../assets/experiment-design.svg)
+
+## Design decisions
+
+The goal was to obtain and measure a dual-camera LIBERO policy within a single RTX A5000 budget. The project implements the adapter mapping, episode-level data controls, accumulated training and checkpoint recovery, and the paired evaluation. It uses the OpenPI policy and LIBERO tasks as its starting point.
+
+| Decision | Setting | Basis |
+|:--|:--|:--|
+| Adaptation | All-linear LoRA, rank 64, alpha 32 | The rank-64 arm in [Dream Machines](https://dream-machines.eu/blog/pi05-fine-tuning) informed the choice. The matrix mapping below is specific to the pinned OpenPI implementation. |
+| Training scale | Effective batch 256 and peak LR 0.0005 | Reference values from the same arm. The project chose 8 samples per microbatch and 32-way accumulation for the A5000. |
+| Learning objective and optimizer | π0.5 flow matching, AdamW and global norm clipping at 1.0 | Retained from the pinned OpenPI path, with gradient averaging and one clip per optimizer update. |
+| Baseline construction | Random A with standard deviation 0.01, B initialized to zero | The project uses a zero initial weight increment so A0 shares the adapter architecture and input pipeline with the trained checkpoints. |
+| Schedule and budget | 1,000-step warmup; original 50,000-step schedule; stop at 2,000 actual updates | The warmup length and exact endpoints are project settings. The final stop reflects the available runtime and delivery budget. |
+
+These settings characterize the single observed training run. The experiment compares training stages under one recipe. Rank, augmentation and full fine-tuning remain outside the comparison.
 
 ## Data and separation
 
@@ -24,6 +38,19 @@ The unit of training progress is an **optimizer update**. The unit of evaluation
 The dataset contains 1,693 demonstrations in total. Training and offline validation are separated by whole demonstration; the [original demonstration split](../configs/demonstration_split.json) lists episode IDs and allocation across all 40 tasks. Evaluation splits partition each task's 50 simulator initial states. Demonstration records and simulator initial-state IDs are different objects.
 
 Initial states are partitioned by a deterministic hash-based rule, with task 0 / initial state 0 reserved for development. Held-out states are disjoint from development and cover the same tasks. The full mapping from training demonstrations to evaluation initial states remains unverified. [Partition rule and state lists](../configs/evaluation.json)
+
+## A training example
+
+Consider a demonstration of picking up the black bowl from the drawer and placing it on a plate. At frame `i`, take the scene image, wrist image, and instruction. The target is the ten demonstration actions starting at frame `i`. Near the end of the trajectory, repeat its final action to fill the window. Use the training-derived quantile statistics for normalization and pad the seven control channels to the model's 32-channel action space.
+
+| Unit | Contents | Role |
+|:--|:--|:--|
+| Demonstration | One entire recorded trajectory | Assigned in full to training or offline validation |
+| Training sample | One frame's observations and a 10-action target window | Supplies a supervised flow matching target |
+| Optimizer update | 8 samples × 32 microbatches | Average the accumulated FP32 adapter gradients, clip globally, then apply AdamW once |
+| Evaluation episode | One policy-controlled task from a fixed initial state | Execute actions in the simulator and count native task success |
+
+At sampled flow time $t$, the action expert receives $x_t=t\epsilon+(1-t)a$ and predicts the velocity target $\epsilon-a$, where $a$ is the action window and $\epsilon$ is Gaussian noise. The training objective averages squared error over the 32 action channels, action positions and samples. Gradients update the adapters. The main trajectory totals **2,000 × 256 = 512,000 sample presentations**, including repeated sample IDs.
 
 ## Recorded training configuration
 
@@ -47,6 +74,34 @@ Initial states are partitioned by a deterministic hash-based rule, with task 0 /
 
 The run retains the original learning-rate schedule: warmup to 1,000 updates, stable phase until 40,000, and decay to the original 50,000-update horizon. The actual run ends at 2,000; the schedule was not rescaled to this shorter budget. [Machine-readable settings](../configs/training.json)
 
+### Adapter coverage
+
+Each target matrix of size $d_{in}\times d_{out}$ is adapted with two factors containing $64(d_{in}+d_{out})$ scalars. The forward increment is $(32/64)AB$. Attention Q, K, V and output matrices have separate factors over their full projection axes, with independent factors per layer. The base kernels, biases, input embeddings, normalization parameters and patch convolution stay frozen. The adaptive normalization conditioning projections are among the linear targets.
+
+| Component | Logical matrices | Adapter scalars |
+|:--|--:|--:|
+| Language backbone attention and MLP | 126 | 78,446,592 |
+| Action expert attention and MLP | 126 | 27,721,728 |
+| Action expert conditioning projections | 37 | 9,699,328 |
+| Vision tower and output projection | 163 | 34,985,984 |
+| Action input and output projections | 2 | 135,168 |
+| Time MLP | 2 | 262,144 |
+| **Total allocated** | **456** | **151,250,944** |
+
+The total counts allocated adapter scalars. Of these, 4,063,232 belong to five matrices in the final language layer (Q, O, gate, up and down) that have no gradient path from the action loss. The 32-channel action projections allocate rank-64 factors, with effective matrix rank bounded by 32.
+
+## From the original plan to the completed run
+
+This chronology is drawn from the training archive. The published score tables cover A0 and the six retained evaluation checkpoints.
+
+| Stage | Decision and evidence |
+|:--|:--|
+| Initial plan | Longer-budget checkpoints were envisioned under a 50,000-update schedule. Data, base-weight identity, adapter behavior, resource headroom and save/restore were checked in small runs before training. |
+| Early checkpoint | The time-budgeted pilot obtained 77/100 at step 652 on development states. This early check sits outside the six-checkpoint held-out ranking. |
+| Checkpoint recovery | The run continued from saved training state, including parameters, optimizer, sampler and random state. At the planned 800-step cutover, the first resumed update was 801. |
+| Completed trajectory | Training reached 2,000 updates. The retained nodes are 800, 1,000, 1,250, 1,500, 1,750 and 2,000. The actual run covers warmup and part of the constant-rate phase, before the original decay point. |
+| Matched evaluation | Compare A0 with the endpoint, evaluate all six trained checkpoints on the same 400 states, then use two additional inference seeds to revisit the observed high point at 1,250 versus 2,000. |
+
 ## Closed-loop inference
 
 Each query conditions the policy on camera images and the task instruction. The state array remains in the model interface, but this run disables discrete state tokenization and the π0.5 action expert does not use a continuous state token. The loop renders 256 × 256 observations, applies the recorded 180° orientation transform and 224 × 224 resize, samples an action chunk, executes part of it, then observes again.
@@ -68,6 +123,12 @@ The flow policy's sampling noise is deterministic per task, initial state, repea
 A successful episode satisfies LIBERO's native Boolean task predicate. An unsolved episode at the 220-step limit is a policy failure. An infrastructure error may receive one exact retry on the same initial state; a still-unresolved technical episode blocks a complete score. The public data includes final valid outcomes, not all attempts.
 
 ## Checkpoint comparison
+
+| Question | Comparison | Scored initial states |
+|:--|:--|:--|
+| How much did fine-tuning help? | A0 vs 2,000 at the original inference seed | 400 per policy; 399 matched first observations in the strict analysis |
+| Which saved step scored highest? | Six trained checkpoints at the original inference seed | 100 development and 400 held-out per checkpoint |
+| How sensitive is the observed lead to inference sampling? | 1,250 vs 2,000 at two additional seeds | 400 per checkpoint and seed |
 
 All six checkpoints use the same 100 development task/state pairs and the same 400 held-out pairs. The reported success rate equals both the mean of the ten task success rates and the fraction of successful episodes because each task contributes equally.
 

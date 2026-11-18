@@ -1,5 +1,6 @@
 """Render academic figures from the validated public experiment snapshot."""
 from pathlib import Path
+import json
 import os
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -8,7 +9,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
-from analyze_results import validate_repository, per_task, paired_counts
+from analyze_results import held_out_report, load_rows, validate_repository, per_task, paired_counts
 
 INK = "#202020"
 BLUE = "#3B5B7A"
@@ -164,6 +165,36 @@ def paired_matrix(rows):
     save(fig, "paired-development")
 
 
+def seed_comparison(report):
+    fig, (intervals, tasks) = plt.subplots(2, 1, figsize=(7.25, 4.95),
+                                          gridspec_kw={"height_ratios": [1.45, 1]})
+    fig.subplots_adjust(left=.25, right=.96, top=.93, bottom=.115, hspace=.76)
+    comparisons = report["1250_vs_2000_by_inference_seed"]
+    data = [(str(item["seed"]), item["delta_1250_minus_2000_pp"], item["paired_CI95_pp"])
+            for item in comparisons]
+    data.append(("Two new seeds", report["mean_new_seed_1250_minus_2000_pp"],
+                 report["mean_new_seed_paired_CI95_pp"]))
+    for index, (_, estimate, (low, high)) in enumerate(data):
+        intervals.errorbar(estimate, index, xerr=[[estimate - low], [high - estimate]],
+                           color=BLUE, fmt="D" if index == 3 else "o", capsize=3, lw=1.15, ms=4)
+    intervals.axvline(0, color=GRAY, lw=.85, ls="--")
+    intervals.set(yticks=range(len(data)), yticklabels=[label for label, _, _ in data],
+                  ylim=(3.55, -.55), xlim=(-3.5, 5), xlabel="1,250 − 2,000 (percentage points)",
+                  title="(a) Paired difference with 95% bootstrap interval")
+    intervals.spines[["top", "right"]].set_visible(False)
+
+    deltas = report["new_seed_success_deltas_by_task"]
+    totals = [sum(item["success_delta_by_seed"].values()) for item in deltas]
+    axes_style(tasks)
+    tasks.bar(range(len(deltas)), totals, width=.62,
+              color=[BLUE if count > 0 else "#AAB6C0" for count in totals])
+    tasks.axhline(0, color=GRAY, lw=.7)
+    tasks.set(xticks=range(len(deltas)), xticklabels=[f"{item['task_id']:02d}" for item in deltas],
+              ylim=(-3, 7), yticks=[-2, 0, 2, 4, 6], xlabel="LIBERO-Spatial task ID",
+              ylabel="1,250 − 2,000 (successes)", title="(b) Success counts across both new seeds")
+    save(fig, "inference-seed-comparison")
+
+
 def main():
     rows, groups = validate_repository()
     style()
@@ -172,7 +203,10 @@ def main():
     standalone_results(groups, counts)
     task_matrix(counts)
     paired_matrix(rows)
-    print("Built five result figures (PNG, SVG, PDF) from validated episode records.")
+    metadata = json.loads((ROOT / "results/provenance.json").read_text())
+    exclusions = {tuple(key) for key in metadata["strict_observation_exclusions"]}
+    seed_comparison(held_out_report(rows, load_rows(extended=True), exclusions))
+    print("Built six result figures (PNG, SVG, PDF) from validated episode records.")
 
 
 if __name__ == "__main__":

@@ -61,9 +61,11 @@ python scripts/plot_results.py
 python scripts/build_diagrams.py
 ```
 
-The plotting script validates the data first and writes five result figures. The diagram script writes the method schematic and extracts original rollout frames using FFmpeg. All figures are exported as PNG, SVG, and PDF with a shared academic style. SVG fonts are converted to paths; PDF fonts are embedded. FFmpeg is required only for extracting rollout frames.
+The plotting script validates the data first and writes six result figures, including the seed sensitivity intervals and task-level differences. The diagram script writes the method schematic and extracts original rollout frames using FFmpeg. All figures are exported as PNG, SVG, and PDF with a shared academic style. SVG fonts are converted to paths; PDF fonts are embedded. FFmpeg is required only for extracting rollout frames.
 
 The main results figure includes the matched A0 baseline and all six held-out checkpoint scores. The three comparison recordings and their frame sequences are distributed as rendered media.
+
+The design schematic and inference-seed figure were exported with Matplotlib 3.10.9. Rebuilding with the pinned 3.10.8 environment targets the same figure content, with byte-level differences possible across versions.
 
 ## Rebuild GIF previews
 
