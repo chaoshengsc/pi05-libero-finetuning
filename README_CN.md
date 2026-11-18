@@ -67,7 +67,7 @@
 
 **图 3. 任务 08，初态 12。** 2,000 步的夹爪在后侧容器附近操作，第 220 个动作步时目标碗仍在盘旁。1,250 步将目标碗放在盘上，第 179 步满足仿真器成功条件。两段录像共享首观测与推理种子，案例是在评测结束后选取的。
 
-[04/00 · 换种子成功取碗](assets/failures/task04-00-comparison.mp4) · [04/45 · 三个种子均未完成](assets/failures/task04-45-comparison.mp4) · [08/12 · 检查点对照](assets/failures/task08-12-comparison.mp4) · [关键帧与图注](docs/demos.md)
+浏览器播放：[04/00 · 换种子成功取碗](https://cdn.jsdelivr.net/gh/chaoshengsc/pi05-libero-finetuning@70cf7dc0754567b5b425e05f74cc18f68f3f52f1/assets/failures/task04-00-comparison.mp4) · [04/45 · 三个种子均未完成](https://cdn.jsdelivr.net/gh/chaoshengsc/pi05-libero-finetuning@70cf7dc0754567b5b425e05f74cc18f68f3f52f1/assets/failures/task04-45-comparison.mp4) · [08/12 · 检查点对照](https://cdn.jsdelivr.net/gh/chaoshengsc/pi05-libero-finetuning@70cf7dc0754567b5b425e05f74cc18f68f3f52f1/assets/failures/task08-12-comparison.mp4)。[关键帧与图注](docs/demos.md#paired-failure-comparisons)
 
 ## 可复现性
 

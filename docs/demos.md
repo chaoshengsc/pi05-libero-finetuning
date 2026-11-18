@@ -10,15 +10,15 @@ The three comparisons use the recorded external camera and are aligned by policy
 
 ![Task 04 state 00, same 2,000-update checkpoint and two inference seeds](../assets/failures/task04-00-frames.png)
 
-**Figure D1. Seed-dependent drawer retrieval (task 04, state 00).** Under seed 20261104, the arm is still at the drawer when the episode ends at step 220. Under seed 20261118 it carries the bowl over the plate by step 125 and meets the predicate at step 148. The second additional seed also succeeds (step 160). [Paired recording](../assets/failures/task04-00-comparison.mp4)
+**Figure D1. Seed-dependent drawer retrieval (task 04, state 00).** Under seed 20261104, the arm is still at the drawer when the episode ends at step 220. Under seed 20261118 it carries the bowl over the plate by step 125 and meets the predicate at step 148. The second additional seed also succeeds (step 160). [Play in browser](https://cdn.jsdelivr.net/gh/chaoshengsc/pi05-libero-finetuning@70cf7dc0754567b5b425e05f74cc18f68f3f52f1/assets/failures/task04-00-comparison.mp4) · [Repository MP4](../assets/failures/task04-00-comparison.mp4)
 
 ![Task 04 state 45, three failures at the 2,000-update checkpoint](../assets/failures/task04-45-frames.png)
 
-**Figure D2. Repeated drawer failure (task 04, state 45).** The three 2,000-update rollouts reach the drawer and vary their gripper pose. All reach step 220 without delivering the bowl to the plate. At 1,250 updates two of the three seeds succeed on this state. [Three-seed recording](../assets/failures/task04-45-comparison.mp4)
+**Figure D2. Repeated drawer failure (task 04, state 45).** The three 2,000-update rollouts reach the drawer and vary their gripper pose. All reach step 220 without delivering the bowl to the plate. At 1,250 updates two of the three seeds succeed on this state. [Play in browser](https://cdn.jsdelivr.net/gh/chaoshengsc/pi05-libero-finetuning@70cf7dc0754567b5b425e05f74cc18f68f3f52f1/assets/failures/task04-45-comparison.mp4) · [Repository MP4](../assets/failures/task04-45-comparison.mp4)
 
 ![Task 08 state 12, 2,000-update failure and 1,250-update success under the same inference seed](../assets/failures/task08-12-frames.png)
 
-**Figure D3. Different checkpoint behavior at the same state (task 08, state 12).** Under the original seed, the 2,000-update policy works around the rear containers and leaves the target bowl beside the plate at the limit. The 1,250-update policy puts the target bowl on the plate and succeeds at step 179. At this state the respective counts are 0/3 and 3/3 across the evaluated seeds. [Paired recording](../assets/failures/task08-12-comparison.mp4)
+**Figure D3. Different checkpoint behavior at the same state (task 08, state 12).** Under the original seed, the 2,000-update policy works around the rear containers and leaves the target bowl beside the plate at the limit. The 1,250-update policy puts the target bowl on the plate and succeeds at step 179. At this state the respective counts are 0/3 and 3/3 across the evaluated seeds. [Play in browser](https://cdn.jsdelivr.net/gh/chaoshengsc/pi05-libero-finetuning@70cf7dc0754567b5b425e05f74cc18f68f3f52f1/assets/failures/task08-12-comparison.mp4) · [Repository MP4](../assets/failures/task08-12-comparison.mp4)
 
 ## Original 800-update recordings
 

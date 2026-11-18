@@ -67,7 +67,7 @@ At 2,000 updates, failures under the original seed occur in the top-drawer (11/4
 
 **Figure 3. Task 08, state 12.** At 2,000 updates, the arm works around the rear containers and the target bowl remains beside the plate at step 220. The 1,250-update policy places the target bowl on the plate and meets the success predicate at step 179. The recorded first observation and inference seed match. The examples were selected after evaluation to illustrate behavior.
 
-[04/00 · Seed-dependent drawer retrieval](assets/failures/task04-00-comparison.mp4) · [04/45 · Repeated drawer failure](assets/failures/task04-45-comparison.mp4) · [08/12 · Checkpoint contrast](assets/failures/task08-12-comparison.mp4) · [Full captions and frames](docs/demos.md)
+Watch in browser: [04/00 · Seed-dependent drawer retrieval](https://cdn.jsdelivr.net/gh/chaoshengsc/pi05-libero-finetuning@70cf7dc0754567b5b425e05f74cc18f68f3f52f1/assets/failures/task04-00-comparison.mp4) · [04/45 · Repeated drawer failure](https://cdn.jsdelivr.net/gh/chaoshengsc/pi05-libero-finetuning@70cf7dc0754567b5b425e05f74cc18f68f3f52f1/assets/failures/task04-45-comparison.mp4) · [08/12 · Checkpoint contrast](https://cdn.jsdelivr.net/gh/chaoshengsc/pi05-libero-finetuning@70cf7dc0754567b5b425e05f74cc18f68f3f52f1/assets/failures/task08-12-comparison.mp4). [Full captions and frames](docs/demos.md#paired-failure-comparisons)
 
 ## Reproducibility
 
