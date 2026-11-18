@@ -23,7 +23,7 @@ The unit of training progress is an **optimizer update**. The unit of evaluation
 
 The dataset contains 1,693 demonstrations in total. Training and offline validation are separated by whole demonstration; the [original demonstration split](../configs/demonstration_split.json) lists episode IDs and allocation across all 40 tasks. Evaluation splits partition each task's 50 simulator initial states. Demonstration records and simulator initial-state IDs are different objects.
 
-Initial states are partitioned by a deterministic hash-based rule, with task 0 / initial state 0 reserved for development. The complete rule and explicit state lists are in [evaluation.json](../configs/evaluation.json). Held-out states are disjoint from development. These are **held-out initial states of known tasks**, not unseen tasks or a different robot embodiment.
+Initial states are partitioned by a deterministic hash-based rule, with task 0 / initial state 0 reserved for development. Held-out states are disjoint from development and cover the same tasks. The full mapping from training demonstrations to evaluation initial states remains unverified. [Partition rule and state lists](../configs/evaluation.json)
 
 ## Recorded training configuration
 
@@ -61,9 +61,9 @@ Each query uses the task instruction, camera observations, and the policy's conf
 | Policy action representation | 32 padded channels, 7 robot action dimensions |
 | Flow sampling steps | 10 |
 | Episode limit | 220 policy-controlled steps |
-| Scored repeats | 1 per initial state and checkpoint |
+| Scored repeats | 1 per initial state, checkpoint, and inference seed |
 
-The flow policy's sampling noise is deterministic per task, initial state, repeat, and query index, using base seed 20261104. This is the fixed sampling procedure used for all checkpoints. The experiment includes no verifier, best-of-N action selection, or inference-time search.
+The flow policy's sampling noise is deterministic per task, initial state, repeat, and query index. All original checkpoint groups and the matched baseline use inference seed 20261104. The sensitivity evaluation changes this seed to 20261118 and 20261119 for 1,250 and 2,000 updates, leaving the environment seed and remaining inference settings fixed. Each episode executes the policy directly.
 
 A successful episode satisfies LIBERO's native Boolean task predicate. An unsolved episode at the 220-step limit is a policy failure. An infrastructure error may receive one exact retry on the same initial state; a still-unresolved technical episode blocks a complete score. The public data includes final valid outcomes, not all attempts.
 
@@ -73,7 +73,9 @@ All six checkpoints use the same 100 development task/state pairs and the same 4
 
 The full six-checkpoint held-out comparison was fixed before those scores were used to select a winner. The final ranking is still a comparison over six candidates on one held-out sample; it is not an independent confirmation of the post-hoc top-ranked checkpoint.
 
-The primary paired inspection is 1,750 vs 2,000 updates. Its unit is `(task_id, initial_state_id)`. The planned uncertainty analysis resamples paired initial states within each task, then averages the ten task differences equally (10,000 bootstrap draws, seed 20261104). The current public script reports the observed paired counts; a confidence-interval report for the complete held-out comparison is pending.
+The matched baseline restores the original frozen step-zero checkpoint with zero optimizer updates, then runs all 400 held-out states. This comparison tests the training endpoint, 2,000 updates, with the same adapter structure and training-derived normalization. Task 01/state 34 has a recorded first-observation mismatch at the original 2,000-update checkpoint, so the strict A0 comparison excludes it and the full 400-state analysis reports sensitivity to its inclusion. The formal 1,750 vs 2,000 comparison uses all 400 state pairs.
+
+Paired bootstrap intervals resample `(task_id, initial_state_id)` within each fixed task and average task differences equally. The 10,000 draws use analysis seeds 20261104 for 1,750 vs 2,000, 20261118 for A0 vs 2,000, and 20261117 for inference-seed comparisons. For the two-seed average, both observations from each initial state stay together. [Full paired results](results.md)
 
 ## Version pins
 

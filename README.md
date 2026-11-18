@@ -1,14 +1,12 @@
 # LoRA Fine-Tuning of π0.5 on LIBERO
 
-Single-GPU training and paired checkpoint evaluation
+Single-GPU training, paired evaluation, and failure analysis
 
 [简体中文](README_CN.md) · [Protocol](docs/experiment.md) · [Supplementary results](docs/results.md) · [Data](results/README.md) · [Reproduction](docs/reproduce.md)
 
 ## Abstract
 
-We study parameter-efficient adaptation of the official `pi05_base` policy to LIBERO using one RTX A5000. A single all-linear LoRA run is trained for 2,000 optimizer updates, retaining six checkpoints. Closed-loop evaluation uses fixed task–initial-state pairs, with disjoint development and held-out partitions. Development success increases from 89/100 at 800 updates to 97/100 at 2,000 updates; the pretrained baseline scores 0/100 under the same development protocol. The first complete held-out evaluation, at 800 updates, yields 346/400 successes (86.5%). This repository provides the experimental specification, episode-level outcomes, recordings, and analysis code.
-
-Results below correspond to the **November 16, 2026, 13:56 CST** snapshot. The remaining held-out groups are not included until complete.
+We adapt the official `pi05_base` policy with all-linear LoRA for 2,000 optimizer updates on one RTX A5000. On 400 fixed LIBERO-Spatial initial states, the matched step-zero baseline (A0) succeeds in 0/400 episodes and the 2,000-update checkpoint in **382/400 (95.50%)**. Across 399 pairs with identical first observations, the change is **+95.50 percentage points** (task-weighted 95% paired bootstrap interval [93.50, 97.25]). The 1,250-update checkpoint has the highest observed score under the original inference seed (389/400). Its mean lead over 2,000 under two additional inference seeds is 1.25 points (95% interval [−0.50, 2.875]). Among the 18 original endpoint failures, 16 succeed under at least one additional seed.
 
 ## Experimental setup
 
@@ -33,41 +31,53 @@ The demonstration split and the simulation initial-state partition serve differe
 
 ## Results
 
-![Development success across checkpoints and held-out success by task for checkpoint 800](assets/evaluation-results.png)
+![Development success across six checkpoints and held-out success for A0 and six checkpoints](assets/evaluation-results.png)
 
-**Figure 2. Closed-loop task success.** (a) Development evaluation, 100 episodes per checkpoint. The vertical axis is truncated at 80%; the pretrained baseline (0/100) is reported in Table 2. (b) Held-out evaluation of checkpoint 800, 40 episodes per task. Labels above bars denote success counts; the dashed line denotes the overall rate of 86.5%. Task definitions are listed in the [data dictionary](results/README.md#task-dictionary). [PDF](assets/evaluation-results.pdf) · [SVG](assets/evaluation-results.svg)
+**Figure 2. Closed-loop success under inference seed 20261104.** (a) Development results for the six trained checkpoints (100 episodes each, axis starts at 80%). (b) Held-out results for A0 and all six checkpoints (400 episodes each). Bar labels show percentages. [PDF](assets/evaluation-results.pdf) · [SVG](assets/evaluation-results.svg)
 
-**Table 2. Success counts on fixed initial states.** All reported groups are complete. Bold denotes the highest observed development score among the six trained checkpoints.
+**Table 2. Success counts on fixed initial states.** Bold marks each split's highest observed score. A0 is the official starting policy evaluated at step zero under the same adapter structure, input pipeline and training-derived normalization.
 
 | Checkpoint | Development (n = 100) | Held-out (n = 400) |
 |:--|--:|--:|
-| Pretrained `pi05_base` | 0 / 100 | — |
+| A0 · step zero | 0 / 100 | 0 / 400 |
 | 800 | 89 / 100 | 346 / 400 |
-| 1,000 | 90 / 100 | Pending |
-| 1,250 | 95 / 100 | Pending |
-| 1,500 | 91 / 100 | Pending |
-| 1,750 | 96 / 100 | Pending |
-| 2,000 | **97 / 100** | Pending |
+| 1,000 | 90 / 100 | 364 / 400 |
+| 1,250 | 95 / 100 | **389 / 400** |
+| 1,500 | 91 / 100 | 380 / 400 |
+| 1,750 | 96 / 100 | 379 / 400 |
+| 2,000 | **97 / 100** | 382 / 400 |
 
-Development performance is non-monotonic across checkpoints. Comparing 1,750 and 2,000 updates on paired development episodes yields 93 shared successes, 3 successes unique to 1,750, and 4 unique to 2,000. The net difference is one percentage point. This descriptive comparison does not establish a held-out advantage. Per-task scores and the paired contingency table are provided in the [supplementary results](docs/results.md).
+The strict A0 comparison has 381 successes unique to 2,000 and 18 shared failures. One pair (task 01, state 34) has a historical first-observation mismatch. The full 400-state sensitivity estimate is also +95.50 points. The 2,000-update endpoint leads 1,750 by 0.75 points on the original held-out evaluation (95% interval [−2.00, 3.50]). [Paired and per-task results](docs/results.md)
 
-## Qualitative results
+## Sensitivity to inference randomness
 
-![External-camera frame sequences from a successful and an unsuccessful held-out episode at checkpoint 800](assets/qualitative-rollouts.png)
+Each seed uses the same 400 held-out initial states. Intervals resample matched initial states within tasks. The two additional seeds leave the checkpoint comparison unresolved at the aggregate level.
 
-**Figure 3. Recorded policy rollouts.** Task 00, checkpoint 800. (a) Initial state 02 reaches the success predicate in 78 policy steps. (b) Initial state 16 remains unsuccessful at the 220-step limit. Each row shows its first, middle, and final recorded frames from the external camera; the rows use different initial states and time indices. These selected examples illustrate behavior and do not estimate success rate. [PDF](assets/qualitative-rollouts.pdf) · [Recordings and selection rule](docs/demos.md)
+| Inference seed | 1,250 updates | 2,000 updates | Difference (pp) | 95% paired interval (pp) |
+|:--|--:|--:|--:|--:|
+| 20261104 | 389 / 400 | 382 / 400 | +1.75 | [−0.50, 4.00] |
+| 20261118 | 395 / 400 | 385 / 400 | +2.50 | [0.50, 4.50] |
+| 20261119 | 379 / 400 | 379 / 400 | 0.00 | [−2.75, 2.75] |
 
-[Successful episode (MP4)](assets/demos/step800-task00-init02.mp4) · [Unsuccessful episode (MP4)](assets/demos/step800-task00-init16.mp4) · [Additional task example](docs/demos.md#task-09--on-the-wooden-cabinet)
+## Failure analysis
+
+At 2,000 updates, failures under the original seed occur in the top-drawer (11/40), ramekin (1/40), and plate-adjacent (6/40) tasks. Of those 18 states, 11 succeed with both additional seeds, 5 with one, and 2 with neither. The additional seeds also turn 11 and 16 original successes into failures, yielding net changes of +3 and −3 episodes. [All 18 cases](docs/results.md#endpoint-failure-analysis)
+
+![The same task 08 initial state at 2,000 updates (failure) and 1,250 updates (success)](assets/failures/task08-12-frames.png)
+
+**Figure 3. Task 08, state 12.** At 2,000 updates, the arm works around the rear containers and the target bowl remains beside the plate at step 220. The 1,250-update policy places the target bowl on the plate and meets the success predicate at step 179. The recorded first observation and inference seed match. The examples were selected after evaluation to illustrate behavior.
+
+[04/00 · Seed-dependent drawer retrieval](assets/failures/task04-00-comparison.mp4) · [04/45 · Repeated drawer failure](assets/failures/task04-45-comparison.mp4) · [08/12 · Checkpoint contrast](assets/failures/task08-12-comparison.mp4) · [Full captions and frames](docs/demos.md)
 
 ## Reproducibility
 
-The public snapshot contains 1,100 episode outcomes. Validation and paired counts require only Python's standard library.
+The November 18 snapshot contains **5,100 scored outcomes**, including 3,500 under the original inference seed and 1,600 under the two additional seeds. The held-out comparisons reuse the same 400 initial states. Validation and statistics require only Python's standard library.
 
 ```sh
 git clone https://github.com/chaoshengsc/pi05-libero-finetuning.git
 cd pi05-libero-finetuning
 python scripts/analyze_results.py
-python scripts/analyze_results.py --pair 1750 2000 --split development
+python scripts/analyze_results.py --report
 ```
 
 | Material | Location |
@@ -82,7 +92,7 @@ Figures are generated from validated records and exported as PNG, SVG, and PDF. 
 
 ## Limitations
 
-Results describe one training seed, known LIBERO-Spatial tasks, and simulation. Held-out initial states do not constitute unseen-task or real-robot evaluation. The six-checkpoint held-out ranking is incomplete in this snapshot. The 800-update held-out group spans a kernel/driver update, with 352 episodes completed before the restart and 48 afterward; see [runtime history](docs/experiment.md#runtime-history).
+Results describe one training seed and ten known LIBERO-Spatial tasks in simulation. The 1,250-update candidate was identified after inspecting the original held-out results. Inference seed repeats reuse the initial states, and the bootstrap intervals condition on the tested tasks, weights and inference seeds. The 800-update held-out group spans a kernel and driver update (352 episodes before the restart, 48 after). [Protocol and runtime history](docs/experiment.md)
 
 ## Upstream resources
 

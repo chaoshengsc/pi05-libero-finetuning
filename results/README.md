@@ -4,11 +4,13 @@
 
 ## Episode records
 
-[`episodes.csv`](episodes.csv) contains 1,100 final valid outcomes. Only complete checkpoint/split groups are included.
+[`episodes.csv`](episodes.csv) contains 3,500 final valid outcomes under inference seed 20261104. A0 and the six trained checkpoints each contribute 100 development and 400 held-out outcomes.
+
+[`inference_seeds.csv`](inference_seeds.csv) adds 1,600 episodes, covering checkpoints 1,250 and 2,000 at inference seeds 20261118 and 20261119. Each checkpoint–seed group uses the same 400 held-out initial states. The file adds the `inference_seed` column to the key below. Eighty scored pilot episodes are reused once, and the pilot's original-seed replays are outside the published counts.
 
 | Column | Meaning |
 |:--|:--|
-| `checkpoint` | `pi05_base`, or optimizer update count |
+| `checkpoint` | `pi05_base` for the matched step-zero A0, or the optimizer update count |
 | `split` | `development` or `held-out` |
 | `task_id` | LIBERO-Spatial task index, 0–9 under task order 0 |
 | `initial_state_id` | Index in the task's fixed 50-state initial-state set |
@@ -46,8 +48,6 @@ Exact task names, file identities, and initial-state lists appear in [evaluation
 
 ## Provenance
 
-[`provenance.json`](provenance.json) records the export timestamp, published coverage, CSV checksum, and source-record digests. For each group, the source digest is SHA-256 of the concatenated binary SHA-256 digests of final record files, ordered lexicographically by task/initial-state directory.
+[`provenance.json`](provenance.json) records the export timestamp, published coverage, CSV checksums, and source-record digests. Development digests retain the prior snapshot's SHA-256 of concatenated binary final-record digests in task and initial-state order. The held-out re-export computes SHA-256 over the corresponding lowercase hexadecimal digests joined by LF, with no trailing LF. Source report digests identify the three completed evaluation reports. The manifest also records the single first-observation exception used for strict A0 pairing.
 
-The source digests identify the original files. Those full source files are not part of this public release. The public validator checks the exported CSV against its manifest and aggregate table.
-
-The snapshot contains 100 baseline development episodes, 6 × 100 trained development episodes, and 400 held-out episodes at checkpoint 800. A pending group has no published rows and must not be assigned a zero score.
+The public validator checks the projected outcomes and media against their manifests. The full workstation records are available only in the experiment archive.

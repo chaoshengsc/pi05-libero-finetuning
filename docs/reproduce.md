@@ -4,7 +4,7 @@
 
 ## Scope
 
-This repository can reproduce the published aggregate scores, per-task tables, development pairing, and figures without a GPU. It does not yet include the complete training/evaluation launcher or distribute model weights. The recorded configurations describe the completed experiment; they are not drop-in OpenPI training commands.
+This repository reproduces aggregate and per-task scores, the matched baseline, seed sensitivity, the original failures and their outcome flips, and the result figures without a GPU. To rerun policy evaluation itself, the full launcher and model weights are required separately.
 
 ## Check the evidence
 
@@ -19,16 +19,16 @@ python scripts/analyze_results.py
 Expected snapshot coverage:
 
 ```text
-Verified 1,100 episodes in 8 complete splits.
+Verified 3,500 original-seed episodes in 14 complete groups and 1,600 additional-seed episodes.
 ```
 
 The script verifies:
 
-- Unique checkpoint/split/task/initial-state keys.
+- Unique checkpoint/split/task/initial-state keys, with inference seed included for the extension.
 - Exact membership of the frozen initial-state partition.
 - Complete coverage for every published group.
 - Equality between episode-derived counts and the public per-task CSV.
-- Checksums, demo labels, and original MP4 integrity.
+- Checksums and outcome labels for the original demos and all three failure comparisons.
 
 The validator checks consistency of the published evidence. The original workstation logs are not all distributed, so source-record digests are provenance anchors rather than independent verification of the whole experiment.
 
@@ -40,7 +40,13 @@ python scripts/analyze_results.py --pair 1750 2000 --split development
 
 Expected outcomes are 93 shared successes, 3 successes unique to 1,750, 4 unique to 2,000, and 0 shared failures. The net difference is +1 percentage point.
 
-A request for an unpublished complete pair, such as the current 1,750/2,000 held-out comparison, exits with an error. Missing results are never treated as failures or zero scores.
+Use `--split held-out` for the original 400-state comparison. The full report recomputes the strict 399-pair A0 result, paired bootstrap intervals, and the original 2,000-update failure list.
+
+```sh
+python scripts/analyze_results.py --report
+```
+
+The paired report conditions on the published weights, tasks and inference seeds. The observation exception used in the strict baseline analysis is recorded in the provenance manifest.
 
 ## Rebuild all figures
 
@@ -56,7 +62,7 @@ python scripts/build_diagrams.py
 
 The plotting script validates the data first and writes five result figures. The diagram script writes the method schematic and extracts original rollout frames using FFmpeg. All figures are exported as PNG, SVG, and PDF with a shared academic style. SVG fonts are converted to paths; PDF fonts are embedded. FFmpeg is required only for extracting rollout frames.
 
-The present figures are authored for this snapshot, including the 800-update held-out result. When publishing further completed checkpoints, update the figures and accompanying narrative together.
+The main results figure includes the matched A0 baseline and all six held-out checkpoint scores. The three comparison recordings and their frame sequences are distributed as rendered media.
 
 ## Rebuild GIF previews
 

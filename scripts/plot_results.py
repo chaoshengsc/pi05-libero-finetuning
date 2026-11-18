@@ -83,13 +83,29 @@ def draw_held_out(ax, counts):
         ax.text(task, rates[task] + 2, str(count), fontsize=8, ha="center")
 
 
-def main_results(groups, counts):
+def held_out_curve(ax, groups):
+    axes_style(ax)
+    labels = ["A0", *(f"{step:,}" for step in STEPS)]
+    keys = ["pi05_base", *map(str, STEPS)]
+    rates = [100 * sum(r["success"] for r in groups[(key, "held-out")]) /
+             len(groups[(key, "held-out")]) for key in keys]
+    ax.bar(range(len(keys)), rates, width=.62, color=["#DEDEDE"] + ["#DDE5ED"] * 5 + [BLUE],
+           edgecolor=BLUE, linewidth=.65)
+    for i, rate in enumerate(rates):
+        ax.annotate(f"{rate:g}", (i, rate), xytext=(0, 3),
+                    textcoords="offset points", ha="center", fontsize=8)
+    ax.set(ylim=(0, 110), xticks=range(len(keys)), yticks=[0, 25, 50, 75, 100],
+           xlabel="Optimizer updates", ylabel="Success rate (%)")
+    ax.set_xticklabels(labels, rotation=25, ha="right")
+
+
+def main_results(groups):
     fig, axes = plt.subplots(1, 2, figsize=(8.2, 2.9))
     fig.subplots_adjust(left=.08, right=.99, bottom=.25, top=.85, wspace=.28)
     draw_development(axes[0], groups)
     axes[0].set_title("(a) Development: checkpoint comparison", pad=10)
-    draw_held_out(axes[1], counts)
-    axes[1].set_title("(b) Held-out: checkpoint 800", pad=10)
+    held_out_curve(axes[1], groups)
+    axes[1].set_title("(b) Held-out: baseline and checkpoints", pad=10)
     save(fig, "evaluation-results")
 
 
@@ -152,7 +168,7 @@ def main():
     rows, groups = validate_repository()
     style()
     counts = per_task(rows)
-    main_results(groups, counts)
+    main_results(groups)
     standalone_results(groups, counts)
     task_matrix(counts)
     paired_matrix(rows)

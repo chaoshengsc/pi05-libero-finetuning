@@ -1,0 +1,92 @@
+{
+  "split": "held-out",
+  "view": "external",
+  "fps": 20,
+  "edit": "Side-by-side alignment by policy step. Earlier terminal frames are held until the longest clip ends.",
+  "cases": [
+    {
+      "task_id": 4,
+      "initial_state_id": 0,
+      "variants": [
+        {
+          "checkpoint": 2000,
+          "inference_seed": 20261104,
+          "success": 0,
+          "policy_steps": 220
+        },
+        {
+          "checkpoint": 2000,
+          "inference_seed": 20261118,
+          "success": 1,
+          "policy_steps": 148
+        }
+      ],
+      "video": {
+        "path": "assets/failures/task04-00-comparison.mp4",
+        "sha256": "a369f96afb6928d7f56887a9f759d0c01132685a2e8b042f0e518d8698960ad2"
+      },
+      "frames": {
+        "path": "assets/failures/task04-00-frames.png",
+        "sha256": "b207c7a9b0bbb03d1327804453687dc259774ba6bd3ba57406d9d290f8590027"
+      }
+    },
+    {
+      "task_id": 4,
+      "initial_state_id": 45,
+      "variants": [
+        {
+          "checkpoint": 2000,
+          "inference_seed": 20261104,
+          "success": 0,
+          "policy_steps": 220
+        },
+        {
+          "checkpoint": 2000,
+          "inference_seed": 20261118,
+          "success": 0,
+          "policy_steps": 220
+        },
+        {
+          "checkpoint": 2000,
+          "inference_seed": 20261119,
+          "success": 0,
+          "policy_steps": 220
+        }
+      ],
+      "video": {
+        "path": "assets/failures/task04-45-comparison.mp4",
+        "sha256": "ca9b8a23ca66d33b4ead8413b3d23b3f261dde6bd1270715722887409d04e145"
+      },
+      "frames": {
+        "path": "assets/failures/task04-45-frames.png",
+        "sha256": "14be7baddd7977fd2e44fbb338fc09d704ab3de74f530450ec5ff8ae8c8a416a"
+      }
+    },
+    {
+      "task_id": 8,
+      "initial_state_id": 12,
+      "variants": [
+        {
+          "checkpoint": 2000,
+          "inference_seed": 20261104,
+          "success": 0,
+          "policy_steps": 220
+        },
+        {
+          "checkpoint": 1250,
+          "inference_seed": 20261104,
+          "success": 1,
+          "policy_steps": 179
+        }
+      ],
+      "video": {
+        "path": "assets/failures/task08-12-comparison.mp4",
+        "sha256": "2bdd79cbba4300fc2049acedf6a14416dadbd9873b5e4352be2030bf88b1712b"
+      },
+      "frames": {
+        "path": "assets/failures/task08-12-frames.png",
+        "sha256": "a72851de1ed44a7c1efde14efd7a85db2c23e50609f601764996bbd8b2b94a96"
+      }
+    }
+  ]
+}

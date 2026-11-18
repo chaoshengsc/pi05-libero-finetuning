@@ -31,12 +31,13 @@ class EvidenceGuards(unittest.TestCase):
             validate_rows(rows, self.protocol)
 
     def test_unpublished_held_out_pair_cannot_be_reported(self):
+        rows = [r for r in self.rows if (r["checkpoint"], r["split"]) != ("1750", "held-out")]
         with self.assertRaisesRegex(ValueError, "No completed"):
-            paired_counts(self.rows, "1750", "2000", "held-out")
+            paired_counts(rows, "1750", "2000", "held-out")
 
     def test_matching_counts_cannot_hide_different_episode_keys(self):
         rows = copy.deepcopy(self.rows)
-        row = next(r for r in rows if r["checkpoint"] == "2000")
+        row = next(r for r in rows if (r["checkpoint"], r["split"]) == ("2000", "development"))
         row["initial_state_id"] = 999
         with self.assertRaisesRegex(ValueError, "identical"):
             paired_counts(rows, "1750", "2000", "development")
